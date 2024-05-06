@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import os
 import torch
+import time
 import matplotlib.pyplot as plt
 
 @torch.no_grad()
@@ -41,8 +42,12 @@ class Logger:
         self.step = 0
         self.log_path = log_path
         self.log_every_n_steps = log_every_n_steps
+        self.time = 0
+        self.eval_time = 0
 
     def update(self, val):
+        if self.val == 0:
+            self.time = time.time()
         self.val += val
         self.step += 1
         if self.step % self.log_every_n_steps == 0:
@@ -50,8 +55,20 @@ class Logger:
             self.val = 0
 
     def log(self):
+        dt = time.time()-self.time
         info = f"Train step {self.step}\n" \
-               + f"loss:{self.val / self.log_every_n_steps:.4f}\n"
+               + f"loss:{self.val / self.log_every_n_steps:.4f}\n" \
+               + f"time per step: {dt / self.log_every_n_steps:.3f}\n"
+        print(info)
+        with open(self.log_path, 'a') as f:
+            f.write(info)
+
+    def start_generation(self):
+        self.eval_time = time.time()
+
+    def end_generation(self):
+        dt = time.time() - self.eval_time
+        info = f"generation time: {dt / self.log_every_n_steps:.3f}\n"
         print(info)
         with open(self.log_path, 'a') as f:
             f.write(info)

@@ -59,8 +59,8 @@ class LatentDiffusion(nn.Module):
 
     @torch.no_grad()
     def condional_generation(self, cls, batch_size=9):
-        if isinstance(cls, int):
-            cls = torch.ones(batch_size).long().to(self.device) * cls
+        # if isinstance(cls, int):
+        #     cls = torch.ones(batch_size).long().to(self.device) * cls
         x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
@@ -73,12 +73,9 @@ class LatentDiffusion(nn.Module):
         cls = self.class_embed(cls)
         if len(t.shape)==1:
             t = t.repeat((x.shape[0], 1))
+        if len(cls.shape)==1:
             cls = cls.repeat((x.shape[0], 1))
-        try:
-            c = torch.cat((t, cls), dim=1)
-        except RuntimeError as e:
-            print(t.shape, cls.shape)
-            raise e
+        c = torch.cat((t, cls), dim=1)
         c = self.condition_embed(c)
         z_pred = self.unet(x, c)
         return z_pred

@@ -430,7 +430,7 @@ class DDIMScheduler(nn.Module):
 
     @torch.no_grad()
     def step(self, x, z_pred, t, step): # step = 0~self.sample_steps-1
-        assert t == self.sample_t[step]
+        assert t == self.sample_t[step], f"{t} {step} {self.sample_t[step]}"
         t_prev = self.sample_t[step+1]
         x = self.mean_pred(x, z_pred, t, t_prev) + z_pred * self.std_pred(t)
         return x

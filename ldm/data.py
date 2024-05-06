@@ -18,8 +18,8 @@ class ImageDataset(Dataset):
         # Gather image paths and labels for all classes
         for i, class_name in enumerate(class_names):
             class_dir = os.path.join(self.data_dir, class_name)
-            for i in range(*data_range):
-                filename = f'{i:0>4}.png'
+            for j in range(*data_range):
+                filename = f'{j:0>4}.png'
                 self.image_paths.append(os.path.join(class_dir, filename))
                 self.labels.append(i)
 
@@ -82,7 +82,7 @@ def build_dataset_img(model, data_config):
     # Create data loader
     data_loader = DataLoader(dataset,
                              batch_size=data_config['batch_size'],
-                             shuffle=True,
+                             shuffle=False,
                              num_workers=4)
 
     x, cls = None, None

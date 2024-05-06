@@ -15,7 +15,7 @@ def print_num_params(model, name, log_path):
 
 @torch.no_grad()
 def tensor2bgr(tensor):
-    imgs = torch.clip(torch.permute(tensor, [2, 3, 1]).cpu().add(1).mul(127.5), 0, 255)
+    imgs = torch.clip(torch.permute(tensor, [0, 2, 3, 1]).cpu().add(1).mul(127.5), 0, 255)
     return imgs.numpy().astype(np.uint8)[:,:,:,::-1]
 
 

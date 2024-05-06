@@ -72,5 +72,6 @@ class LatentDiffusion(nn.Module):
         t = self.time_embed(t)
         cls = self.class_embed(cls)
         c = torch.cat((t, cls), dim=1)
+        c = self.condition_embed(c)
         z_pred = self.unet(x, c)
         return z_pred

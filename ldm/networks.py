@@ -74,7 +74,11 @@ class LatentDiffusion(nn.Module):
         if len(t.shape)==1:
             t = t.repeat((x.shape[0], 1))
             cls = cls.repeat((x.shape[0], 1))
-        c = torch.cat((t, cls), dim=1)
+        try:
+            c = torch.cat((t, cls), dim=1)
+        except RuntimeError as e:
+            print(t.shape, cls.shape)
+            raise e
         c = self.condition_embed(c)
         z_pred = self.unet(x, c)
         return z_pred

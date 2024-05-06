@@ -12,6 +12,7 @@ class LatentDiffusion(nn.Module):
                  ae_config,
                  diffusion_config):
         super(LatentDiffusion, self).__init__()
+        self.device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         self.latent_size = ae_config['latent_size']
         self.latent_dim = ae_config['latent_dim']
         self.max_train_steps = diffusion_config['max_train_steps']
@@ -42,8 +43,8 @@ class LatentDiffusion(nn.Module):
         return (z - z_pred).pow(2).mean()
 
     def train_step(self, x0, cls):
-        z = torch.randn(x0.shape, dtype=x0.dtype)
-        t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape)
+        z = torch.randn(x0.shape, dtype=x0.dtype).to(x0.device)
+        t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
         x = self.sampler.diffuse(x0, t, z)
         z_pred = self(x, cls, t)
         return self.calculate_loss(z, z_pred)
@@ -59,8 +60,8 @@ class LatentDiffusion(nn.Module):
     @torch.no_grad()
     def condional_generation(self, cls, batch_size=9):
         if isinstance(cls, int):
-            cls = torch.ones(batch_size).long() * cls
-        x = torch.randn([batch_size, self.latent_dim, *self.latent_size])
+            cls = torch.ones(batch_size).long().to(self.device) * cls
+        x = torch.randn([batch_size, self.latent_dim, *self.latent_size]).to(self.device)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             z_pred = self(x, cls, t)

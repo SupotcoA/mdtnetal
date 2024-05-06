@@ -347,20 +347,20 @@ class DDPMScheduler(nn.Module):
         super(DDPMScheduler, self).__init__()
         self.max_train_steps = max_train_steps
         self.sample_steps = sample_steps
-        if beta_schedule=='cosine':
+        if beta_schedule == 'cosine':
             s = 0.008
-            x = torch.linspace(0, max_train_steps, max_train_steps+1)
+            x = torch.linspace(0, max_train_steps, max_train_steps + 1)
             alphas_cumprod = torch.cos(((x / max_train_steps) + s) / (1 + s) * torch.pi * 0.5) ** 2
             alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
             betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-            self.beta = torch.clip(betas, 0.0001, 0.9999)
-        elif beta_schedule=='linear':
-            self.beta = torch.linspace(1e-4, 0.02, max_train_steps)
-        self.alpha = 1-self.beta
-        self.alpha_sqrt = self.alpha.sqrt()
-        self.alpha_bar = torch.cumprod(self.alpha, dim=0)
-        self.alpha_bar_sqrt = self.alpha_bar.sqrt()
-        self.sigma = self.beta.sqrt()
+            self.register_buffer('beta', torch.clip(betas, 0.0001, 0.9999))
+        elif beta_schedule == 'linear':
+            self.register_buffer('beta', torch.linspace(1e-4, 0.02, max_train_steps))
+        self.register_buffer('alpha', 1 - self.beta)
+        self.register_buffer('alpha_sqrt', self.alpha.sqrt())
+        self.register_buffer('alpha_bar', torch.cumprod(self.alpha, dim=0))
+        self.register_buffer('alpha_bar_sqrt', self.alpha_bar.sqrt())
+        self.register_buffer('sigma', self.beta.sqrt())
 
     @torch.no_grad()
     def diffuse(self, x0, t:torch.Tensor, z):
@@ -390,21 +390,21 @@ class DDIMScheduler(nn.Module):
         self.max_train_steps = max_train_steps
         self.sample_steps = sample_steps
         self.speedup_rate = int(round(max_train_steps / sample_steps))
-        self.sample_t = torch.linspace(max_train_steps, 0, sample_steps+1).long()
+        self.register_buffer('sample_t',torch.linspace(max_train_steps, 0, sample_steps+1).long())
         if beta_schedule=='cosine':
             s = 0.008
             x = torch.linspace(0, max_train_steps, max_train_steps+1)
             alphas_cumprod = torch.cos(((x / max_train_steps) + s) / (1 + s) * torch.pi * 0.5) ** 2
             alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
             betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-            self.beta = torch.clip(betas, 0.0001, 0.9999)
+            self.register_buffer('beta',torch.clip(betas, 0.0001, 0.9999))
         elif beta_schedule=='linear':
-            self.beta = torch.linspace(1e-4, 0.02, max_train_steps)
-        self.alpha = 1-self.beta
-        self.alpha_sqrt = self.alpha.sqrt()
-        self.alpha_bar = torch.cumprod(self.alpha, dim=0)
-        self.alpha_bar_sqrt = self.alpha_bar.sqrt()
-        self.sigma = self.beta.sqrt()
+            self.register_buffer('beta', torch.linspace(1e-4, 0.02, max_train_steps))
+        self.register_buffer('alpha',1-self.beta)
+        self.register_buffer('alpha_sqrt',self.alpha.sqrt())
+        self.register_buffer('alpha_bar',torch.cumprod(self.alpha, dim=0))
+        self.register_buffer('alpha_bar_sqrt', self.alpha_bar.sqrt())
+        self.register_buffer('sigma',self.beta.sqrt())
 
     @torch.no_grad()
     def diffuse(self, x0, t:torch.Tensor, z):

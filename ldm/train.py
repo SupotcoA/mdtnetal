@@ -11,7 +11,7 @@ def train(model,
                     log_path=train_config['log_path'],
                     log_every_n_steps=train_config['log_every_n_steps'])
     for [x0, cls] in train_dataset:
-        loss = model.train_step(x0.cuda(), cls.cuda())
+        loss = model.train_step(x0.to(model.device), cls.to(model.device))
         optim.zero_grad()
         loss.backward()
         optim.step()
@@ -36,7 +36,7 @@ def test(model,
     acc_loss = 0
     step = 0
     for [x0, cls] in test_dataset:
-        loss = model.train_step(x0.cuda(), cls.cuda())
+        loss = model.train_step(x0.to(model.device), cls.to(model.device))
         acc_loss += loss.detach().cpu().item()
     info = f"Test step {step}\n" \
            + f"loss:{acc_loss / train_config['eval_every_n_steps']:.3f}\n"

@@ -1,7 +1,7 @@
 import torch
 from torch import nn
 from autoencoder import AutoEncoder
-from modules import Unet, DDPMScheduler, TimeEmbed, ClassEmbed
+from modules import Unet, DDPMScheduler, DDIMScheduler, TimeEmbed, ClassEmbed
 
 
 class LatentDiffusion(nn.Module):
@@ -18,7 +18,14 @@ class LatentDiffusion(nn.Module):
         self.sample_steps=diffusion_config['sample_steps']
         self.unet = Unet(**unet_config)
         self.ae = AutoEncoder(**ae_config)
-        self.beta_scheduler = DDPMScheduler(self.max_train_steps)
+        if self.max_train_steps==self.sample_steps:
+            self.beta_scheduler = DDPMScheduler(self.max_train_steps,
+                                                self.sample_steps,
+                                                'cosine')
+        else:
+            self.beta_scheduler = DDIMScheduler(self.max_train_steps,
+                                                self.sample_steps,
+                                                'cosine')
         embed_dim=unet_config['c_dim']
         self.time_embed = TimeEmbed(embed_dim=embed_dim,
                                     max_train_steps=diffusion_config['max_train_steps'])
@@ -35,19 +42,19 @@ class LatentDiffusion(nn.Module):
         return (z-z_pred).pow(2).mean()
 
     def train_step(self, x0, cls):
-        z = torch.randn(x0.shape, dtype=x0.dtype)
-        t = torch.randint(low=1, high=self.max_train_steps+1, size=cls.shape)
+        z = torch.randn(x0.shape, dtype=x0.dtype).to(self.device)
+        t = torch.randint(low=1, high=self.max_train_steps+1, size=cls.shape).to(self.device)
         x = self.sampler.diffuse(x0, t, z)
         z_pred = self(x, cls, t)
         return self.calculate_loss(z, z_pred)
 
     @torch.no_grad()
     def decode(self, x):
-        return self.ae.decode(x)
+        return self.ae.decode(x) / 0.1
 
     @torch.no_grad()
     def encode(self, img):
-        return self.ae.encode(img)
+        return self.ae.encode(img) * 0.1
 
     @torch.no_grad()
     def condional_generation(self, cls, batch_size=9):
@@ -57,7 +64,7 @@ class LatentDiffusion(nn.Module):
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             z_pred = self(x, cls, t)
-            x = self.sampler.step(x, z_pred, t)
+            x = self.sampler.step(x, z_pred, t, step)
         return torch.clip(self.decode(x), -1, 1)
 
     def forward(self, x, cls, t):

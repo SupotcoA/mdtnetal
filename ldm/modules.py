@@ -61,17 +61,34 @@ class AdaptiveLayerNorm(nn.Module):
     def __init__(self, n_channels, c_dim):
         super().__init__()
         self.n_channels = n_channels
-        self.fc = nn.Sequential(nn.ReLU(inplace=True),
+        self.fc = nn.Sequential(nn.SiLU(inplace=True),
                                 nn.Linear(c_dim, 2*n_channels, bias=True))
 
     def forward(self, x, c=None):
         beta = torch.mean(x, dim=(2,3), keepdim=True)
         alpha = torch.var(x, dim=(2,3), keepdim=True, unbiased=False).sqrt()
         x = (x - beta)/(alpha+1e-5)
-        scale, bias = torch.chunk(self.fc(c), chunks=2, dim=0)
-        scale = scale.view([1, self.n_channels, 1, 1])
-        bias = bias.view([1, self.n_channels, 1, 1])
-        return x.mul_(scale).add_(bias)
+        scale, bias = torch.chunk(self.fc(c), chunks=2, dim=1)
+        scale = scale[:, :, None, None]
+        bias = bias[:, :, None, None]
+        return x.mul_(1+scale).add_(bias)
+
+
+class AdaptiveGroupNorm(nn.Module):
+
+    def __init__(self, n_channels, c_dim, num_groups=32):
+        super().__init__()
+        self.num_groups = num_groups
+        self.n_channels = n_channels
+        self.fc = nn.Sequential(nn.SiLU(inplace=True),
+                                nn.Linear(c_dim, 2*n_channels, bias=True))
+
+    def forward(self, x, c=None):
+        x = F.group_norm(x, self.num_groups, eps=1e-5)
+        scale, bias = torch.chunk(self.fc(c), chunks=2, dim=1)
+        scale = scale[:, :, None, None]
+        bias = bias[:, :, None, None]
+        return x.mul_(1+scale).add_(bias)
 
 
 class ResBlock(nn.Module):
@@ -217,6 +234,7 @@ class Unet(nn.Module):
         self.num_res_blocks = num_res_blocks
         self.in_channels = in_channels
 
+        # norm before conv in?
         # downsampling
         self.conv_in = torch.nn.Conv2d(in_channels,
                                        ch,
@@ -323,18 +341,26 @@ class Unet(nn.Module):
 class DDPMScheduler(nn.Module):
 
     def __init__(self,
-                 max_train_steps):
+                 max_train_steps,
+                 sample_steps=1000,
+                 beta_schedule='cosine'):
         super(DDPMScheduler, self).__init__()
         self.max_train_steps = max_train_steps
-        self.beta = torch.arange(max_train_steps)
+        self.sample_steps = sample_steps
+        if beta_schedule=='cosine':
+            s = 0.008
+            x = torch.linspace(0, max_train_steps, max_train_steps+1)
+            alphas_cumprod = torch.cos(((x / max_train_steps) + s) / (1 + s) * torch.pi * 0.5) ** 2
+            alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
+            betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
+            self.beta = torch.clip(betas, 0.0001, 0.9999)
+        elif beta_schedule=='linear':
+            self.beta = torch.linspace(1e-4, 0.02, max_train_steps)
         self.alpha = 1-self.beta
         self.alpha_sqrt = self.alpha.sqrt()
         self.alpha_bar = torch.cumprod(self.alpha, dim=0)
         self.alpha_bar_sqrt = self.alpha_bar.sqrt()
         self.sigma = self.beta.sqrt()
-        # self.sigma[1:] = ((1-self.alpha_bar[:-1]) *
-        #                   self.beta[1:]/(1-self.alpha_bar[1:])).sqrt()
-        # self.sigma[0] = 0
 
     @torch.no_grad()
     def diffuse(self, x0, t:torch.Tensor, z):
@@ -346,10 +372,65 @@ class DDPMScheduler(nn.Module):
         return self.max_train_steps-step
 
     @torch.no_grad()
-    def step(self, x, z_pred, t):
+    def step(self, x, z_pred, t, step=None): # t = 1~1000
         z = torch.randn(z_pred.shape,dtype=z_pred.dtype) if t>1 else 0
         x = (x - (1-self.alpha[t-1])/(1-self.alpha_bar[t-1]).sqrt()*z_pred)/\
             self.alpha_sqrt[t-1] + self.sigma[t-1]*z
+        return x
+
+
+class DDIMScheduler(nn.Module):
+
+    def __init__(self,
+                 max_train_steps,
+                 sample_steps=50,
+                 beta_schedule='cosine'):
+        super(DDIMScheduler, self).__init__()
+        self.max_train_steps = max_train_steps
+        self.sample_steps = sample_steps
+        self.speedup_rate = int(round(max_train_steps / sample_steps))
+        self.sample_t = torch.linspace(max_train_steps, 0, sample_steps+1).long()
+        if beta_schedule=='cosine':
+            s = 0.008
+            x = torch.linspace(0, max_train_steps, max_train_steps+1)
+            alphas_cumprod = torch.cos(((x / max_train_steps) + s) / (1 + s) * torch.pi * 0.5) ** 2
+            alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
+            betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
+            self.beta = torch.clip(betas, 0.0001, 0.9999)
+        elif beta_schedule=='linear':
+            self.beta = torch.linspace(1e-4, 0.02, max_train_steps)
+        self.alpha = 1-self.beta
+        self.alpha_sqrt = self.alpha.sqrt()
+        self.alpha_bar = torch.cumprod(self.alpha, dim=0)
+        self.alpha_bar_sqrt = self.alpha_bar.sqrt()
+        self.sigma = self.beta.sqrt()
+
+    @torch.no_grad()
+    def diffuse(self, x0, t:torch.Tensor, z):
+        x = self.alpha_bar_sqrt[t-1]*x0 + (1-self.alpha_bar[t-1]).sqrt() * z
+        return x
+
+    @torch.no_grad()
+    def step2t(self, step):
+        return self.max_train_steps - self.sample_t[step]
+
+    @torch.no_grad()
+    def mean_pred(self, x, z_pred, t, t_prev):
+        if t_prev==0:
+            alpha_bar_sqrt_prev = 1
+        else:
+            alpha_bar_sqrt_prev = self.alpha_bar_sqrt[t_prev-1]
+        return alpha_bar_sqrt_prev*(x-(1-self.alpha_bar[t-1]).sqrt()*z_pred)/self.alpha_bar_sqrt[t-1]
+
+    @torch.no_grad()
+    def std_pred(self, t):
+        return (1-self.alpha_bar[t-1]).sqrt()
+
+    @torch.no_grad()
+    def step(self, x, z_pred, t, step): # step = 0~self.sample_steps-1
+        assert t == self.sample_t[step]
+        t_prev = self.sample_t[step+1]
+        x = self.mean_pred(x, z_pred, t, t_prev) + z_pred * self.std_pred(t)
         return x
 
 
@@ -378,7 +459,12 @@ class TimeEmbed(nn.Module):
         return emb
 
     def forward(self, t):
-        return self.embed[t-1]
+        if isinstance(t, int):
+            return self.embed[t-1]
+        elif isinstance(t,torch.Tensor):
+            return self.embed[t.long()-1]
+        else:
+            raise TypeError(f"t is type {type(t)}")
 
 
 class ClassEmbed(nn.Module):
@@ -390,7 +476,12 @@ class ClassEmbed(nn.Module):
         self.embed_dim = embed_dim
         self.max_train_steps=n_classes
         embed = torch.zeros([n_classes, embed_dim], dtype=torch.float32)
-        self.embed = nn.Parameter(embed,requires_grad=True)
+        self.embed = nn.Parameter(embed, requires_grad=True)
 
     def forward(self, cls):
-        return self.embed[cls]
+        if isinstance(cls, int):
+            return self.embed[cls - 1]
+        elif isinstance(cls, torch.Tensor):
+            return self.embed[cls.long() - 1]
+        else:
+            raise TypeError(f"cls is type {type(cls)}")

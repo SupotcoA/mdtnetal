@@ -364,7 +364,8 @@ class DDPMScheduler(nn.Module):
 
     @torch.no_grad()
     def diffuse(self, x0, t:torch.Tensor, z):
-        x = self.alpha_bar_sqrt[t-1]*x0 + (1-self.alpha_bar[t-1]).sqrt() * z
+        x = self.alpha_bar_sqrt[t-1][:,None,None,None]*x0 \
+            + (1-self.alpha_bar[t-1]).sqrt()[:,None,None,None] * z
         return x
 
     @torch.no_grad()
@@ -407,7 +408,8 @@ class DDIMScheduler(nn.Module):
 
     @torch.no_grad()
     def diffuse(self, x0, t:torch.Tensor, z):
-        x = self.alpha_bar_sqrt[t-1]*x0 + (1-self.alpha_bar[t-1]).sqrt() * z
+        x = self.alpha_bar_sqrt[t-1][:,None,None,None]*x0 \
+            + (1-self.alpha_bar[t-1]).sqrt()[:,None,None,None] * z
         return x
 
     @torch.no_grad()

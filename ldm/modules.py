@@ -414,7 +414,7 @@ class DDIMScheduler(nn.Module):
 
     @torch.no_grad()
     def step2t(self, step):
-        return self.max_train_steps - self.sample_t[step]
+        return self.sample_t[step]
 
     @torch.no_grad()
     def mean_pred(self, x, z_pred, t, t_prev):

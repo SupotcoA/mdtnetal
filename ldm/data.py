@@ -3,6 +3,7 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 # print("torchvision.transoforms.v2 not available, using v1 instead")
 import cv2
+import numpy as np
 import os
 
 
@@ -27,7 +28,7 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
-        image = cv2.imread(image_path)[:,:,::-1].copy()  # Ensure RGB format
+        image = np.ascontiguousarray(cv2.imread(image_path)[:,:,::-1])  # Ensure RGB format
         label = self.labels[idx]
 
         if self.transform:

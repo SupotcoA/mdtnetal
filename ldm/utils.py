@@ -27,7 +27,7 @@ def vis_imgs(imgs, step, cls, root):
     base = np.zeros((h*3,w*3,c),dtype=np.uint8)
     for i in range(3):
         for j in range(3):
-            base[i*h:i*h+h, j*w:i*w+w, :]=imgs[i*3+j]
+            base[i*h:i*h+h, j*w:j*w+w, :]=imgs[i*3+j]
     fp=os.path.join(root,f"s{step}_{cls}.png")
     cv2.imwrite(fp, base)
 

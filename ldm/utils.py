@@ -5,6 +5,7 @@ import torch
 import time
 import matplotlib.pyplot as plt
 
+
 @torch.no_grad()
 def print_num_params(model, name, log_path):
     num_params = 0
@@ -14,23 +15,27 @@ def print_num_params(model, name, log_path):
         f.write(f"{name} parameters: {num_params}\n")
     print(f"{name} parameters: {num_params}")
 
+
 @torch.no_grad()
 def tensor2bgr(tensor):
     imgs = torch.clip(torch.permute(tensor, [0, 2, 3, 1]).cpu().add(1).mul(127.5), 0, 255)
-    return imgs.numpy().astype(np.uint8)[:,:,:,::-1]
+    return imgs.numpy().astype(np.uint8)[:, :, :, ::-1]
 
 
 @torch.no_grad()
-def vis_imgs(imgs, step, cls, root):
+def vis_imgs(imgs, step, cls, root, use_plt=False):
     imgs = tensor2bgr(imgs)
     assert imgs.shape[0] == 9
-    h,w,c=imgs.shape[1:]
-    base = np.zeros((h*3,w*3,c),dtype=np.uint8)
+    h, w, c = imgs.shape[1:]
+    base = np.zeros((h * 3, w * 3, c), dtype=np.uint8)
     for i in range(3):
         for j in range(3):
-            base[i*h:i*h+h, j*w:j*w+w, :]=imgs[i*3+j]
-    fp=os.path.join(root,f"s{step}_{cls}.png")
+            base[i * h:i * h + h, j * w:j * w + w, :] = imgs[i * 3 + j]
+    fp = os.path.join(root, f"s{step}_{cls}.png")
     cv2.imwrite(fp, base)
+    if use_plt:
+        plt.imshow(base[:, :, ::-1])
+        plt.show()
 
 
 class Logger:
@@ -55,10 +60,10 @@ class Logger:
             self.val = 0
 
     def log(self):
-        dt = time.time()-self.time
+        dt = time.time() - self.time
         info = f"Train step {self.step}\n" \
                + f"loss:{self.val / self.log_every_n_steps:.4f}\n" \
-               + f"time per step: {dt / self.log_every_n_steps:.3f}\n"
+               + f"time: {dt:.1} / {self.log_every_n_steps} = {dt / self.log_every_n_steps:.3f}\n"
         print(info)
         with open(self.log_path, 'a') as f:
             f.write(info)
@@ -68,7 +73,15 @@ class Logger:
 
     def end_generation(self):
         dt = time.time() - self.eval_time
-        info = f"generation time: {dt / self.log_every_n_steps:.3f}\n"
+        info = f"generation time: {dt:.3f}\n"
         print(info)
         with open(self.log_path, 'a') as f:
             f.write(info)
+
+
+@torch.no_grad()
+def check_ae(model, x, root):
+    if x.shape[0] < 9:
+        return
+    imgs = torch.clip(model.decode(x), -1, 1)[:9]
+    vis_imgs(imgs, 0, None, root, use_plt=True)

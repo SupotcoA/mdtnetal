@@ -42,8 +42,8 @@ class LatentDiffusion(nn.Module):
         return (z - z_pred).pow(2).mean()
 
     def train_step(self, x0, cls):
-        z = torch.randn(x0.shape, dtype=x0.dtype).to(self.device)
-        t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(self.device)
+        z = torch.randn(x0.shape, dtype=x0.dtype)
+        t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape)
         x = self.sampler.diffuse(x0, t, z)
         z_pred = self(x, cls, t)
         return self.calculate_loss(z, z_pred)

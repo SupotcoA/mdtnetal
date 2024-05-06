@@ -36,10 +36,11 @@ def test(model,
     acc_loss = 0
     step = 0
     for [x0, cls] in test_dataset:
+        step+=1
         loss = model.train_step(x0.to(model.device), cls.to(model.device))
         acc_loss += loss.detach().cpu().item()
     info = f"Test step {step}\n" \
-           + f"loss:{acc_loss / train_config['eval_every_n_steps']:.3f}\n"
+           + f"loss:{acc_loss / step:.4f}\n"
     print(info)
     with open(train_config['log_path'], 'a') as f:
         f.write(info)

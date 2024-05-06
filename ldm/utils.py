@@ -51,7 +51,7 @@ class Logger:
 
     def log(self):
         info = f"Train step {self.step}\n" \
-               + f"loss:{self.val / self.log_every_n_steps:.3f}\n"
+               + f"loss:{self.val / self.log_every_n_steps:.4f}\n"
         print(info)
         with open(self.log_path, 'a') as f:
             f.write(info)

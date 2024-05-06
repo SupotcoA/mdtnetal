@@ -61,7 +61,7 @@ class LatentDiffusion(nn.Module):
     def condional_generation(self, cls, batch_size=9):
         if isinstance(cls, int):
             cls = torch.ones(batch_size).long().to(self.device) * cls
-        x = torch.randn([batch_size, self.latent_dim, *self.latent_size]).to(self.device)
+        x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             z_pred = self(x, cls, t)

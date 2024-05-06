@@ -27,7 +27,7 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
-        image = cv2.imread(image_path)[:,:,::-1]  # Ensure RGB format
+        image = cv2.imread(image_path)[:,:,::-1].copy()  # Ensure RGB format
         label = self.labels[idx]
 
         if self.transform:

@@ -61,7 +61,7 @@ class AdaptiveLayerNorm(nn.Module):
     def __init__(self, n_channels, c_dim):
         super().__init__()
         self.n_channels = n_channels
-        self.fc = nn.Sequential(nn.SiLU(inplace=True),
+        self.fc = nn.Sequential(nn.SiLU(),
                                 nn.Linear(c_dim, 2*n_channels, bias=True))
 
     def forward(self, x, c=None):
@@ -80,7 +80,7 @@ class AdaptiveGroupNorm(nn.Module):
         super().__init__()
         self.num_groups = num_groups
         self.n_channels = n_channels
-        self.fc = nn.Sequential(nn.SiLU(inplace=True),
+        self.fc = nn.Sequential(nn.SiLU(),
                                 nn.Linear(c_dim, 2*n_channels, bias=True))
 
     def forward(self, x, c=None):

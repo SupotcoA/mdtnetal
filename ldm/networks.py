@@ -15,35 +15,35 @@ class LatentDiffusion(nn.Module):
         self.latent_size = ae_config['latent_size']
         self.latent_dim = ae_config['latent_dim']
         self.max_train_steps = diffusion_config['max_train_steps']
-        self.sample_steps=diffusion_config['sample_steps']
+        self.sample_steps = diffusion_config['sample_steps']
         self.unet = Unet(**unet_config)
         self.ae = AutoEncoder(**ae_config)
-        if self.max_train_steps==self.sample_steps:
-            self.beta_scheduler = DDPMScheduler(self.max_train_steps,
-                                                self.sample_steps,
-                                                'cosine')
+        if self.max_train_steps == self.sample_steps:
+            self.sampler = DDPMScheduler(self.max_train_steps,
+                                         self.sample_steps,
+                                         'cosine')
         else:
-            self.beta_scheduler = DDIMScheduler(self.max_train_steps,
-                                                self.sample_steps,
-                                                'cosine')
-        embed_dim=unet_config['c_dim']
+            self.sampler = DDIMScheduler(self.max_train_steps,
+                                         self.sample_steps,
+                                         'cosine')
+        embed_dim = unet_config['c_dim']
         self.time_embed = TimeEmbed(embed_dim=embed_dim,
                                     max_train_steps=diffusion_config['max_train_steps'])
-        class_embed_dim = min(data_config['n_classes'],embed_dim)
+        class_embed_dim = min(data_config['n_classes'], embed_dim)
         self.class_embed = ClassEmbed(embed_dim=class_embed_dim,
                                       n_classes=data_config['n_classes'])
-        self.condition_embed = nn.Sequential(nn.Linear(class_embed_dim+embed_dim,
+        self.condition_embed = nn.Sequential(nn.Linear(class_embed_dim + embed_dim,
                                                        embed_dim),
                                              nn.ReLU(inplace=True),
-                                             nn.Linear(embed_dim,embed_dim))
+                                             nn.Linear(embed_dim, embed_dim))
 
     @staticmethod
     def calculate_loss(z, z_pred):
-        return (z-z_pred).pow(2).mean()
+        return (z - z_pred).pow(2).mean()
 
     def train_step(self, x0, cls):
         z = torch.randn(x0.shape, dtype=x0.dtype).to(self.device)
-        t = torch.randint(low=1, high=self.max_train_steps+1, size=cls.shape).to(self.device)
+        t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(self.device)
         x = self.sampler.diffuse(x0, t, z)
         z_pred = self(x, cls, t)
         return self.calculate_loss(z, z_pred)
@@ -59,7 +59,7 @@ class LatentDiffusion(nn.Module):
     @torch.no_grad()
     def condional_generation(self, cls, batch_size=9):
         if isinstance(cls, int):
-            cls = torch.ones(batch_size).long()*cls
+            cls = torch.ones(batch_size).long() * cls
         x = torch.randn([batch_size, self.latent_dim, *self.latent_size])
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
@@ -73,7 +73,3 @@ class LatentDiffusion(nn.Module):
         c = torch.cat((t, cls), dim=1)
         z_pred = self.unet(x, c)
         return z_pred
-
-
-
-

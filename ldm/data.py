@@ -71,7 +71,7 @@ def build_dataset_img(model, data_config):
     # Define the image transformation
     transform = transforms.Compose([
         transforms.ToTensor(),
-        transforms.Resize(data_config['image_size']),
+        transforms.Resize(data_config['image_size'], antialias=True),
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     # Create dataset instance

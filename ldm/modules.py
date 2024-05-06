@@ -140,10 +140,10 @@ class ResBlock(nn.Module):
 
     def forward(self, x, c=None):
         h = x
-        h = self.norm1(h)
+        h = self.norm1(h,c)
         h = F.relu_(h)
         h = self.conv1(h)
-        h = self.norm2(h)
+        h = self.norm2(h,c)
         h = F.relu_(h)
         h = self.conv2(h)
         x = self.conv_shortcut(x)
@@ -332,7 +332,7 @@ class Unet(nn.Module):
                 h = self.up[i_level].upsample(h)
 
         # end
-        h = self.norm_out(h)
+        h = self.norm_out(h,c)
         h = F.relu_(h)
         h = self.conv_out(h)
         return h

@@ -69,8 +69,8 @@ def build_dataset_img(model, data_config):
 
     # Define the image transformation
     transform = transforms.Compose([
+        transforms.ToTensor(),
         transforms.Resize(data_config['image_size']),
-        transforms.ToTensor(),  # Convert to PyTorch tensor
         transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
     ])
     # Create dataset instance
@@ -86,7 +86,7 @@ def build_dataset_img(model, data_config):
 
     x, cls = None, None
     for images, labels in data_loader:
-        images = images.cuda()
+        images = images.to(model.device)
         x_ = model.encode(images)
         if x is None:
             x = x_.cpu()
@@ -94,6 +94,7 @@ def build_dataset_img(model, data_config):
         else:
             x = torch.cat((x,x_.cpu()),dim=0)
             cls = torch.cat((cls,labels),dim=0)
+    print(f"x shape: {x.shape}, cls shape: {cls.shape}")
     torch.save(x,data_config['x_path'])
     torch.save(cls,data_config['cls_path'])
 
@@ -102,6 +103,7 @@ def build_dataset_img(model, data_config):
 def build_cached_dataset(data_config):
     x=torch.load(data_config['x_path'])
     cls=torch.load(data_config['cls_path'])
+    print(f"x shape: {x.shape}, cls shape: {cls.shape}")
     assert x.shape[0]==15000
     s=x.shape[0]
     split=int(s*data_config['split'])

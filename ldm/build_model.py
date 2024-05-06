@@ -12,9 +12,13 @@ def build_model(data_config,
                             unet_config,
                             ae_config,
                             diffusion_config)
-    print_num_params(model.ae, "AE", data_config['log_path'])
-    print_num_params(model.unet, "Unet", data_config['log_path'])
-    model.cuda()
+    print_num_params(model.ae, "AE", train_config['log_path'])
+    print_num_params(model.unet, "Unet", train_config['log_path'])
+    if torch.cuda.is_available():
+        model.cuda()
+        print("running on cuda")
+    else:
+        print("running on cpu!")
     optim = torch.optim.Adam(list(model.unet.parameters()) + \
                              list(model.class_embed.parameters()) + \
                              list(model.condition_embed.parameters()) + \

@@ -24,12 +24,12 @@ def vis_imgs(imgs, step, cls, root):
     imgs = tensor2bgr(imgs)
     assert imgs.shape[0] == 9
     h,w,c=imgs.shape[1:]
-    base = np.zeros(h*3,w*3,c,dtype=np.uint8)
+    base = np.zeros((h*3,w*3,c),dtype=np.uint8)
     for i in range(3):
         for j in range(3):
-            base[i*h:i*h+h,j*w:i*w+w,:]=imgs[i*3+j]
-    fp=os.path.join(root,f"s{step}_{cls}")
-    cv2.imwrite(fp,base)
+            base[i*h:i*h+h, j*w:i*w+w, :]=imgs[i*3+j]
+    fp=os.path.join(root,f"s{step}_{cls}.png")
+    cv2.imwrite(fp, base)
 
 
 class Logger:

@@ -40,7 +40,7 @@ class DDPMScheduler(nn.Module):
 
     @torch.no_grad()
     def step(self, x, z_pred, t, step=None):  # t = 1~1000
-        z = torch.randn(z_pred.shape, dtype=z_pred.dtype) if t > 1 else 0
+        z = torch.randn_like(z_pred) if t > 1 else 0
         x = (x - (1 - self.alpha[t - 1]) / (1 - self.alpha_bar[t - 1]).sqrt() * z_pred) / \
             self.alpha_sqrt[t - 1] + self.sigma[t - 1] * z
         return x
@@ -90,7 +90,8 @@ class DDIMScheduler(nn.Module):
             alpha_bar_sqrt_prev = 1
         else:
             alpha_bar_sqrt_prev = self.alpha_bar_sqrt[t_prev - 1]
-        return alpha_bar_sqrt_prev * (x - (1 - self.alpha_bar[t - 1]).sqrt() * z_pred) / self.alpha_bar_sqrt[t - 1]
+        return alpha_bar_sqrt_prev * (x - (1 - self.alpha_bar[t - 1]).sqrt() * z_pred)\
+               / self.alpha_bar_sqrt[t - 1]
 
     @torch.no_grad()
     def std_pred(self, t_prev):

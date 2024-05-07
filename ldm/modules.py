@@ -167,7 +167,7 @@ class AdaLNZeroResBlock(nn.Module):
                                             / res_bottle_neck_factor)
             self.bottle_neck_channels = max(32, self.bottle_neck_channels)
         if self.bottle_neck_channels % 32 != 0:
-            self.bottle_neck_channels = 32 * int(round(self.bottle_neck_channels/32))
+            self.bottle_neck_channels = 32 * divmod(self.bottle_neck_channels, 32)[0]
 
         self.norm1 = torch.nn.GroupNorm(num_groups=32,
                                         num_channels=in_channels,

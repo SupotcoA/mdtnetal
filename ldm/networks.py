@@ -70,7 +70,7 @@ class LatentDiffusion(nn.Module):
 
     @torch.no_grad()
     def validate_generation(self, x0, batch_size=9):
-        x0 = x0[:batch_size]
+        x0 = x0[:batch_size].to(self.device)
         x = torch.randn_like(x0)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)

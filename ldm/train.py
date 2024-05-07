@@ -48,7 +48,7 @@ def test(model,
     for [x0, cls] in test_dataset:
         step+=1
         loss = model.train_step(x0.to(model.device), cls.to(model.device))
-        acc_loss += loss.detach().cpu().item()
+        acc_loss += loss.cpu().item()
     info = f"Test step\n" \
            + f"loss:{acc_loss / step:.4f}\n"
     print(info)

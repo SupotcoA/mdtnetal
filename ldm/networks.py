@@ -86,7 +86,7 @@ class LatentDiffusion(nn.Module):
         if len(cls.shape)==1:
             cls = cls.repeat((x.shape[0], 1))
         c = torch.cat((t, cls), dim=1)
-        assert abs(c).mean() < 10
+        assert abs(c).mean() < 10  ###
         c = self.condition_embed(c)
         z_pred = self.unet(x, c)
         return z_pred

@@ -199,9 +199,10 @@ class AdaLNZeroResBlock(nn.Module):
             self.conv_shortcut = nn.Identity()
 
         self.condition_proj = nn.Sequential(nn.ReLU(inplace=False),
-                                            nn.Linear(c_dim, 5 * out_channels, bias=True),
+                                            nn.Linear(c_dim, 5 * in_channels, bias=True),
                                             )
 
+    ### channel bugs here!!!
     def forward(self, x, c=None):
         alpha1, beta1, gamma1, beta2, gamma2 = torch.chunk(self.condition_proj(c), chunks=5, dim=1)
         h = x
@@ -276,8 +277,8 @@ class AttnBlock(nn.Module):
 
 
 def make_res_block(*args, **kwargs):
-    # return ResBlock(*args,**kwargs)
-    return AdaLNZeroResBlock(*args, **kwargs)
+    return ResBlock(*args,**kwargs)
+    # return AdaLNZeroResBlock(*args, **kwargs)
 
 
 class Unet(nn.Module):

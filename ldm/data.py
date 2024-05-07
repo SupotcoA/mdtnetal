@@ -59,7 +59,8 @@ class InfiniteDataLoader:
     def __iter__(self):
         while True:
             for data in self.loader:
-                yield data
+                while True:
+                    yield data
 
 
 @torch.no_grad()

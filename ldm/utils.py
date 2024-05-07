@@ -63,7 +63,7 @@ class Logger:
         dt = time.time() - self.time
         info = f"Train step {self.step}\n" \
                + f"loss:{self.val / self.log_every_n_steps:.4f}\n" \
-               + f"time: {dt:.1} / {self.log_every_n_steps} = {dt / self.log_every_n_steps:.3f}\n"
+               + f"time: {dt:.1f} \n"
         print(info)
         with open(self.log_path, 'a') as f:
             f.write(info)
@@ -73,7 +73,7 @@ class Logger:
 
     def end_generation(self):
         dt = time.time() - self.eval_time
-        info = f"generation time: {dt:.3f}\n"
+        info = f"generation time: {dt:.2f}\n"
         print(info)
         with open(self.log_path, 'a') as f:
             f.write(info)

@@ -45,13 +45,13 @@ class LatentDiffusion(nn.Module):
     def train_step(self, x0, cls):
         z = torch.randn_like(x0)
         t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
-        x = self.sampler.diffuse(torch.ones_like(x0), t, z)  ###
-        z_pred = self(x, cls, t)  ###
+        x = self.sampler.diffuse(x0, t, z)   ###  *2
+        z_pred = self(x, cls, t)
         return self.calculate_loss(z, z_pred)
 
     @torch.no_grad()
     def decode(self, x):
-        return torch.clip(self.ae.decode(x / 0.1), -1, 1)
+        return torch.clip(self.ae.decode(x / 0.1), -1, 1)  ### /2
 
     @torch.no_grad()
     def encode(self, img):
@@ -74,21 +74,22 @@ class LatentDiffusion(nn.Module):
         x = torch.randn_like(x0)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
-            z_pred = x - x0 \
-                     + 0.001*torch.randn_like(x0)\
-                     *torch.arange(batch_size)[:,None,None,None].to(self.device)
+            z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1][:, None, None, None] * x0)\
+                     / (1 - self.sampler.alpha_bar[t - 1]).sqrt()[:, None, None, None]
+            z_pred = z_pred \
+                     + 0.008 * torch.randn_like(x0) \
+                     * torch.arange(batch_size)[:, None, None, None].to(self.device)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 
     def forward(self, x, cls, t):
         t = self.time_embed(t)
         cls = self.class_embed(cls)
-        if len(t.shape)==1:
+        if len(t.shape) == 1:
             t = t.repeat((x.shape[0], 1))
-        if len(cls.shape)==1:
+        if len(cls.shape) == 1:
             cls = cls.repeat((x.shape[0], 1))
         c = torch.cat((t, cls), dim=1)
-        assert abs(c).mean() < 10  ###
         c = self.condition_embed(c)
         z_pred = self.unet(x, c)
         return z_pred

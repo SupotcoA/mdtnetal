@@ -51,7 +51,7 @@ class LatentDiffusion(nn.Module):
 
     @torch.no_grad()
     def decode(self, x):
-        return self.ae.decode(x) / 0.1
+        return self.ae.decode(x / 0.1)
 
     @torch.no_grad()
     def encode(self, img):

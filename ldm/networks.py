@@ -75,7 +75,8 @@ class LatentDiffusion(nn.Module):
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             z_pred = x - x0 \
-                     + 0.001*torch.randn_like(x0)*torch.arange(batch_size)[:,None,None,None]
+                     + 0.001*torch.randn_like(x0)\
+                     *torch.arange(batch_size)[:,None,None,None].to(self.device)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 

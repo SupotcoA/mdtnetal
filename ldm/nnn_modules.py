@@ -72,7 +72,7 @@ class DDIMScheduler(nn.Module):
         self.register_buffer('alpha_bar_sqrt', self.alpha_bar.sqrt())
         self.register_buffer('sigma', self.beta.sqrt())
         assert self.beta.max() < 1 and self.beta.min() > 0
-        assert self.alpha_bar[0] > 0.9 and self.alpha_bar[-1] < 0.1
+        assert self.alpha_bar[0] > 0.98 and self.alpha_bar[-1] < 0.03
 
     @torch.no_grad()
     def diffuse(self, x0, t: torch.Tensor, z):
@@ -93,14 +93,14 @@ class DDIMScheduler(nn.Module):
         return alpha_bar_sqrt_prev * (x - (1 - self.alpha_bar[t - 1]).sqrt() * z_pred) / self.alpha_bar_sqrt[t - 1]
 
     @torch.no_grad()
-    def std_pred(self, t):
-        return (1 - self.alpha_bar[t - 1]).sqrt()
+    def std_pred(self, t_prev):
+        return (1 - self.alpha_bar[t_prev - 1]).sqrt()
 
     @torch.no_grad()
     def step(self, x, z_pred, t, step):  # step = 0~self.sample_steps-1
         assert t == self.sample_t[step], f"{t} {step} {self.sample_t[step]}"
         t_prev = self.sample_t[step + 1]
-        x = self.mean_pred(x, z_pred, t, t_prev) + z_pred * self.std_pred(t)
+        x = self.mean_pred(x, z_pred, t, t_prev) + z_pred * self.std_pred(t_prev)
         return x
 
 

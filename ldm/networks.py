@@ -45,13 +45,13 @@ class LatentDiffusion(nn.Module):
     def train_step(self, x0, cls):
         z = torch.randn_like(x0)
         t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
-        x = self.sampler.diffuse(x0, t, z)
-        z_pred = self(x, cls, t)
+        # x = self.sampler.diffuse(x0, t, z)  ###
+        z_pred = self(z, cls, t)  ###
         return self.calculate_loss(z, z_pred)
 
     @torch.no_grad()
     def decode(self, x):
-        return self.ae.decode(x / 0.1)
+        return torch.clip(self.ae.decode(x / 0.1), -1, 1)
 
     @torch.no_grad()
     def encode(self, img):
@@ -66,7 +66,17 @@ class LatentDiffusion(nn.Module):
             t = self.sampler.step2t(step)
             z_pred = self(x, cls, t)
             x = self.sampler.step(x, z_pred, t, step)
-        return torch.clip(self.decode(x), -1, 1)
+        return self.decode(x)
+
+    @torch.no_grad()
+    def validate_generation(self, x0, batch_size=9):
+        x0 = x0[:batch_size]
+        x = torch.randn_like(x0)
+        for step in range(self.sample_steps):
+            t = self.sampler.step2t(step)
+            z_pred = x - x0 + 0.01*torch.randn_like(x0)
+            x = self.sampler.step(x, z_pred, t, step)
+        return self.decode(x)
 
     def forward(self, x, cls, t):
         t = self.time_embed(t)

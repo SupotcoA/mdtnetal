@@ -83,5 +83,7 @@ class Logger:
 def check_ae(model, x, root):
     if x.shape[0] < 9:
         return
-    imgs = torch.clip(model.decode(x), -1, 1)[:9]
-    vis_imgs(imgs, 0, None, root, use_plt=True)
+    imgs = model.decode(x)[:9]
+    vis_imgs(imgs, "ae_check", "ae_check", root, use_plt=True)
+
+

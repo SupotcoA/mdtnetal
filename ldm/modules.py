@@ -203,12 +203,12 @@ class AdaLNZeroResBlock(nn.Module):
                                             )
 
     def forward(self, x, c=None):
-        alpha1, beta1, gamma1, beta2, gamma2 = torch.chunk(self.condition_proj(c), chunks=6, dim=1)
+        alpha1, beta1, gamma1, beta2, gamma2 = torch.chunk(self.condition_proj(c), chunks=5, dim=1)
         h = x
-        h = self.norm1(h).mul(1 + gamma1).add(beta1)
+        h = self.norm1(h).mul(1 + gamma1[:, :, None, None]).add(beta1[:, :, None, None])
         h = F.relu_(h)
         h = self.conv1(h)
-        h = self.norm2(h).mul(1 + gamma2).add(beta2)
+        h = self.norm2(h).mul(1 + gamma2[:, :, None, None]).add(beta2[:, :, None, None])
         h = F.relu_(h)
         h = self.conv2(h)
         x = self.conv_shortcut(x)

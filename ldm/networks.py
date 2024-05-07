@@ -35,7 +35,7 @@ class LatentDiffusion(nn.Module):
                                       n_classes=data_config['n_classes'])
         self.condition_embed = nn.Sequential(nn.Linear(class_embed_dim + embed_dim,
                                                        embed_dim),
-                                             nn.ReLU(inplace=True),
+                                             nn.SiLU(),
                                              nn.Linear(embed_dim, embed_dim))
 
     @staticmethod
@@ -43,7 +43,7 @@ class LatentDiffusion(nn.Module):
         return (z - z_pred).pow(2).mean()
 
     def train_step(self, x0, cls):
-        z = torch.randn(x0.shape, dtype=x0.dtype).to(x0.device)
+        z = torch.randn_like(x0)
         t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
         x = self.sampler.diffuse(x0, t, z)
         z_pred = self(x, cls, t)

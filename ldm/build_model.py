@@ -24,4 +24,10 @@ def build_model(data_config,
                              list(model.condition_embed.parameters()) + \
                              list(model.time_embed.parameters()),
                              lr=train_config['base_learning_rate'])
-    return model.eval(), optim
+    if train_config['use_lr_scheduler']:
+        lr_scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer=optim,
+                                                                  T_max=train_config['train_steps'],
+                                                                  eta_min=1.0e-5)
+    else:
+        lr_scheduler = None
+    return model.eval(), optim, lr_scheduler

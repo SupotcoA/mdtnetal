@@ -71,7 +71,7 @@ class AdaptiveLayerNorm(nn.Module):
         scale, bias = torch.chunk(self.fc(c), chunks=2, dim=1)
         scale = scale[:, :, None, None]
         bias = bias[:, :, None, None]
-        return x.mul_(1 + scale).add_(bias)
+        return x.mul(1 + scale).add(bias)
 
 
 class AdaptiveGroupNorm(nn.Module):
@@ -88,7 +88,7 @@ class AdaptiveGroupNorm(nn.Module):
         scale, bias = torch.chunk(self.fc(c), chunks=2, dim=1)
         scale = scale[:, :, None, None]
         bias = bias[:, :, None, None]
-        return x.mul_(1 + scale).add_(bias)
+        return x.mul(1 + scale).add(bias)
 
 
 class ResBlock(nn.Module):
@@ -108,8 +108,6 @@ class ResBlock(nn.Module):
                                                 self.in_channels) \
                                             / res_bottle_neck_factor)
             self.bottle_neck_channels = max(32, self.bottle_neck_channels)
-        if self.bottle_neck_channels >= 128 and divmod(self.bottle_neck_channels, 32)[1] != 0:
-            self.bottle_neck_channels = (1 + int(self.bottle_neck_channels / 32)) * 32
 
         self.norm1 = AdaptiveLayerNorm(n_channels=in_channels,
                                        c_dim=c_dim)
@@ -126,7 +124,7 @@ class ResBlock(nn.Module):
                                kernel_size=3,
                                stride=1,
                                padding='same',
-                               bias=False)
+                               bias=True)
         if self.in_channels != self.out_channels:
             self.conv_shortcut = nn.Conv2d(in_channels=in_channels,
                                            out_channels=self.out_channels,
@@ -361,7 +359,6 @@ class DDPMScheduler(nn.Module):
         self.register_buffer('alpha_bar', torch.cumprod(self.alpha, dim=0))
         self.register_buffer('alpha_bar_sqrt', self.alpha_bar.sqrt())
         self.register_buffer('sigma', self.beta.sqrt())
-        assert max(self.beta) < 0.1
         assert self.alpha_bar[0] > 0.9 and self.alpha_bar[-1] < 0.1
 
     @torch.no_grad()
@@ -407,7 +404,7 @@ class DDIMScheduler(nn.Module):
         self.register_buffer('alpha_bar', torch.cumprod(self.alpha, dim=0))
         self.register_buffer('alpha_bar_sqrt', self.alpha_bar.sqrt())
         self.register_buffer('sigma', self.beta.sqrt())
-        assert self.beta.max() < 0.1 and self.beta.min() > 0
+        assert self.beta.max() < 1 and self.beta.min() > 0
         assert self.alpha_bar[0] > 0.9 and self.alpha_bar[-1] < 0.1
 
     @torch.no_grad()
@@ -484,10 +481,10 @@ class ClassEmbed(nn.Module):
         embed = torch.zeros([n_classes, embed_dim], dtype=torch.float32)
         self.embed = nn.Parameter(embed, requires_grad=True)
 
-    def forward(self, cls):
+    def forward(self, cls):  # e.g. cls = 0~2
         if isinstance(cls, int):
-            return self.embed[cls - 1]
+            return self.embed[cls]
         elif isinstance(cls, torch.Tensor):
-            return self.embed[cls.long() - 1]
+            return self.embed[cls.long()]
         else:
             raise TypeError(f"cls is type {type(cls)}")

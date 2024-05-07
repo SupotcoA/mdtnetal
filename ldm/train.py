@@ -4,6 +4,7 @@ from utils import Logger, vis_imgs, check_ae
 
 def train(model,
           optim,
+          lr_scheduler,
           train_config,
           train_dataset,
           test_dataset):
@@ -18,6 +19,8 @@ def train(model,
         loss.backward()
         optim.step()
         logger.update(loss.detach().cpu().item())
+        if train_config['use_lr_scheduler']:
+            lr_scheduler.step()
         if logger.step % train_config['eval_every_n_steps']==0:
             test(model,
                  train_config,

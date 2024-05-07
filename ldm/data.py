@@ -39,7 +39,7 @@ class ImageDataset(Dataset):
 
 class TensorDataset(Dataset):
     def __init__(self, images, labels):
-        self.images = images
+        self.images = images * 3  ### *3
         self.labels = labels
 
     def __len__(self):

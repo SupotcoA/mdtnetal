@@ -45,13 +45,13 @@ class LatentDiffusion(nn.Module):
     def train_step(self, x0, cls):
         z = torch.randn_like(x0)
         t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
-        x = self.sampler.diffuse(x0, t, z)   ###  *2
+        x = self.sampler.diffuse(x0, t, z)
         z_pred = self(x, cls, t)
         return self.calculate_loss(z, z_pred)
 
     @torch.no_grad()
     def decode(self, x):
-        return torch.clip(self.ae.decode(x / 0.1), -1, 1)  ### /2
+        return torch.clip(self.ae.decode(x / 0.1 / 3), -1, 1)  ### /3 see data.TensorDataset
 
     @torch.no_grad()
     def encode(self, img):

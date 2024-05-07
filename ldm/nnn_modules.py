@@ -95,10 +95,9 @@ class DDIMScheduler(nn.Module):
     @torch.no_grad()
     def std_pred(self, t_prev):
         if t_prev == 0:
-            alpha_bar_prev = 1
+            return 1
         else:
-            alpha_bar_prev = self.alpha_bar[t_prev - 1]
-        return (1 - alpha_bar_prev).sqrt()
+            return (1 - self.alpha_bar[t_prev - 1]).sqrt()
 
     @torch.no_grad()
     def step(self, x, z_pred, t, step):  # step = 0~self.sample_steps-1

@@ -77,7 +77,7 @@ class LatentDiffusion(nn.Module):
             z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * x0)\
                      / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
             z_pred = z_pred \
-                     + 0.008 * torch.randn_like(x0) \
+                     + 0.08 * torch.randn_like(x0) \
                      * torch.arange(batch_size)[:, None, None, None].to(self.device)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)

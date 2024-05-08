@@ -31,14 +31,19 @@ def train(model,
                  train_config,
                  test_dataset)
             noised_images,rec_images = model.sim_training(x0, cls, batch_size=9)
-            vis_imgs(noised_images, logger.step, "noised",
-                     train_config['outcome_root'])
-            vis_imgs(rec_images, logger.step, "rec",
-                     train_config['outcome_root'])
             logger.start_generation()
-            for cls in [0, 1, 2]:
-                imgs = model.condional_generation(cls=cls, batch_size=9)
-                vis_imgs(imgs, logger.step, cls, train_config['outcome_root'])
+            vis_imgs(noised_images, logger.step, "noised1",
+                     train_config['outcome_root'])
+            vis_imgs(rec_images, logger.step, "rec1",
+                     train_config['outcome_root'])
+            noised_images, rec_images = model.midway_generation(x0, cls, batch_size=9)
+            vis_imgs(noised_images, logger.step, "noised2",
+                     train_config['outcome_root'])
+            vis_imgs(rec_images, logger.step, "rec2",
+                     train_config['outcome_root'])
+            #for cls in [0, 1, 2]:
+            #    imgs = model.condional_generation(cls=cls, batch_size=9)
+            #    vis_imgs(imgs, logger.step, cls, train_config['outcome_root'])
             logger.end_generation()
             model.train()
         if logger.step % train_config['train_steps']==0:

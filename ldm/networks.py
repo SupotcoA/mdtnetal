@@ -69,17 +69,15 @@ class LatentDiffusion(nn.Module):
         return self.decode(x)
 
     @torch.no_grad()  ### not used
-    def midway_generation(self, x0, cls, step_s, step_e,batch_size=9):
+    def midway_generation(self, x0, cls, step_s=500, step_e=200, batch_size=9):
         z = torch.randn_like(x0)
-        x =  self.sampler.diffuse(x0, self.sampler.step2t(step),z)
-        acc_loss = 0
-        acc_bias =0
+        x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s),z)
+        x = x_.detach()
         for step in range(step_s, step_e):
             t = self.sampler.step2t(step)
             z_pred = self(x, cls, t)
-            acc_loss = self.calculate_loss(x-x0)
             x = self.sampler.step(x, z_pred, t, step)
-        return self.decode(x)
+        return self.decode(x_), self.decode(x)
 
     @torch.no_grad()
     def validate_generation(self, x0, batch_size=9):

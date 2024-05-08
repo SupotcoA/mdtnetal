@@ -46,8 +46,8 @@ class TensorDataset(Dataset):
         return self.images.shape[0]
 
     def __getitem__(self, idx):
-        image = self.images[idx % 1500]
-        label = self.labels[idx % 1500]
+        image = self.images[idx]
+        label = self.labels[idx]
         return image, label
 
 

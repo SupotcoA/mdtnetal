@@ -18,7 +18,8 @@ def train(model,
                  train_config['outcome_root'], use_plt=True)
         break
     for [x0, cls] in train_dataset:
-        loss = model.train_step(x0.to(model.device), cls.to(model.device))
+        x0, cls = x0.to(model.device), cls.to(model.device)
+        loss = model.train_step()
         optim.zero_grad()
         loss.backward()
         optim.step()

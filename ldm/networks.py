@@ -67,7 +67,7 @@ class LatentDiffusion(nn.Module):
         return self.decode(x)
 
     @torch.no_grad()
-    def midway_generation(self, x0, cls, step_s=15, step_e=1000, batch_size=9):
+    def midway_generation(self, x0, cls, step_s=200, step_e=1000, batch_size=9):
         z = torch.randn_like(x0)
         step_s_ = torch.ones(x0.shape[0]).long().to(self.device)*step_s
         x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s_),z)
@@ -81,30 +81,28 @@ class LatentDiffusion(nn.Module):
     @torch.no_grad()
     def validate_generation(self, x0, batch_size=9):
         x0 = x0[:batch_size]
-        x = torch.randn_like(x0)
-        for step in range(996, self.sample_steps):  ### 950,
+        x = torch.randn_like(x0)* \
+            (torch.arange(batch_size)[:, None, None, None].to(self.device)/2/batch_size+0.5)
+        for step in range(999, self.sample_steps):  ### 950,
             t = self.sampler.step2t(step)
-            if step%2==0:
+            if step % 2 == 0:
                 z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * torch.randn_like(x0))\
                         / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
             else:
                 z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * x0) \
                          / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
-            z_pred = z_pred \
-                     * (1+0.05  \
-                     * (torch.arange(batch_size)[:, None, None, None].to(self.device)-4))
+
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 
     @torch.no_grad()
     def sim_training(self, x0, cls, batch_size=9):
-        z = torch.randn_like(x0)
+        z = torch.randn_like(x0[:batch_size])
         t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
         x = self.sampler.diffuse(x0, t, z)
-        z_pred = self(x, cls, t)
+        z_pred = self(x, cls[:batch_size], t)
         x0_pred = self.sampler.rev_diffuse(x, t, z_pred)
         return self.decode(x), self.decode(x0_pred)
-
 
     def forward(self, x, cls, t):
         t = self.time_embed(t)

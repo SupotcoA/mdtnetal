@@ -3,56 +3,13 @@ from torch import nn
 import numpy as np
 
 
-class DDPMScheduler(nn.Module):
+class SchedulerBase(nn.Module):
 
     def __init__(self,
                  max_train_steps,
                  sample_steps=1000,
                  beta_schedule='cosine'):
-        super(DDPMScheduler, self).__init__()
-        self.max_train_steps = max_train_steps
-        self.sample_steps = sample_steps
-        if beta_schedule == 'cosine':
-            s = 0.008
-            x = torch.linspace(0, max_train_steps, max_train_steps + 1)
-            alphas_cumprod = torch.cos(((x / max_train_steps) + s) / (1 + s) * torch.pi * 0.5) ** 2
-            alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
-            betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-            self.register_buffer('beta', torch.clip(betas, 0.0001, 0.9999))
-        elif beta_schedule == 'linear':
-            self.register_buffer('beta', torch.linspace(1e-4, 0.02, max_train_steps))
-        self.register_buffer('alpha', 1 - self.beta)
-        self.register_buffer('alpha_sqrt', self.alpha.sqrt())
-        self.register_buffer('alpha_bar', torch.cumprod(self.alpha, dim=0))
-        self.register_buffer('alpha_bar_sqrt', self.alpha_bar.sqrt())
-        self.register_buffer('sigma', self.beta.sqrt())
-        assert self.alpha_bar[0] > 0.9 and self.alpha_bar[-1] < 0.1
-
-    @torch.no_grad()
-    def diffuse(self, x0, t: torch.Tensor, z):
-        x = self.alpha_bar_sqrt[t - 1][:, None, None, None] * x0 \
-            + (1 - self.alpha_bar[t - 1]).sqrt()[:, None, None, None] * z
-        return x
-
-    @torch.no_grad()
-    def step2t(self, step):
-        return self.max_train_steps - step
-
-    @torch.no_grad()
-    def step(self, x, z_pred, t, step=None):  # t = 1~1000
-        z = torch.randn_like(z_pred) if t > 1 else 0
-        x = (x - (1 - self.alpha[t - 1]) / (1 - self.alpha_bar[t - 1]).sqrt() * z_pred) / \
-            self.alpha_sqrt[t - 1] + self.sigma[t - 1] * z
-        return x
-
-
-class DDIMScheduler(nn.Module):
-
-    def __init__(self,
-                 max_train_steps,
-                 sample_steps=50,
-                 beta_schedule='cosine'):
-        super(DDIMScheduler, self).__init__()
+        super(SchedulerBase, self).__init__()
         self.max_train_steps = max_train_steps
         self.sample_steps = sample_steps
         self.speedup_rate = int(round(max_train_steps / sample_steps))
@@ -79,6 +36,45 @@ class DDIMScheduler(nn.Module):
         x = self.alpha_bar_sqrt[t - 1][:, None, None, None] * x0 \
             + (1 - self.alpha_bar[t - 1]).sqrt()[:, None, None, None] * z
         return x
+
+    @torch.no_grad()
+    def rev_diffuse(self, x, t: torch.Tensor, z):
+        x0 = (x - (1 - self.alpha_bar[t - 1]).sqrt()[:, None, None, None] * z) \
+             / self.alpha_bar_sqrt[t - 1][:, None, None, None]
+        return x0
+
+
+class DDPMScheduler(SchedulerBase):
+
+    def __init__(self,
+                 max_train_steps,
+                 sample_steps=1000,
+                 beta_schedule='cosine'):
+        super(DDPMScheduler, self).__init__(max_train_steps=max_train_steps,
+                                            sample_steps=sample_steps,
+                                            beta_schedule=beta_schedule)
+
+    @torch.no_grad()
+    def step2t(self, step):
+        return self.max_train_steps - step
+
+    @torch.no_grad()
+    def step(self, x, z_pred, t, step=None):  # t = 1~1000
+        z = torch.randn_like(z_pred) if t > 1 else 0
+        x = (x - (1 - self.alpha[t - 1]) / (1 - self.alpha_bar[t - 1]).sqrt() * z_pred) / \
+            self.alpha_sqrt[t - 1] + self.sigma[t - 1] * z
+        return x
+
+
+class DDIMScheduler(SchedulerBase):
+
+    def __init__(self,
+                 max_train_steps,
+                 sample_steps=50,
+                 beta_schedule='cosine'):
+        super(DDIMScheduler, self).__init__(max_train_steps=max_train_steps,
+                                            sample_steps=sample_steps,
+                                            beta_schedule=beta_schedule)
 
     @torch.no_grad()
     def step2t(self, step):

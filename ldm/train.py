@@ -29,6 +29,11 @@ def train(model,
             test(model,
                  train_config,
                  test_dataset)
+            noised_images,rec_images = model.sim_training(x0, cls, batch_size=9)
+            vis_imgs(noised_images, logger.step, "noised",
+                     train_config['outcome_root'])
+            vis_imgs(rec_images, logger.step, "rec",
+                     train_config['outcome_root'])
             logger.start_generation()
             for cls in [0, 1, 2]:
                 imgs = model.condional_generation(cls=cls, batch_size=9)

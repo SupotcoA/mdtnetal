@@ -82,6 +82,16 @@ class LatentDiffusion(nn.Module):
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 
+    @torch.no_grad()
+    def sim_training(self, x0, cls, batch_size=9):
+        z = torch.randn_like(x0)
+        t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
+        x = self.sampler.diffuse(x0, t, z)
+        z_pred = self(x, cls, t)
+        x0_pred = self.sampler.rev_diffuse(x, t, z_pred)
+        return self.decode(x), self.decode(x0_pred)
+
+
     def forward(self, x, cls, t):
         t = self.time_embed(t)
         cls = self.class_embed(cls)

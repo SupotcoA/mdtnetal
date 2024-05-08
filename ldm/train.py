@@ -19,7 +19,7 @@ def train(model,
         break
     for [x0, cls] in train_dataset:
         x0, cls = x0.to(model.device), cls.to(model.device)
-        loss = model.train_step()
+        loss = model.train_step(x0, cls)
         optim.zero_grad()
         loss.backward()
         optim.step()

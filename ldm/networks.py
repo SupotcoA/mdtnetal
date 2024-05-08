@@ -59,17 +59,15 @@ class LatentDiffusion(nn.Module):
 
     @torch.no_grad()
     def condional_generation(self, cls, batch_size=9):
-        # if isinstance(cls, int):
-        #     cls = torch.ones(batch_size).long().to(self.device) * cls
         x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
-        for step in range(self.sample_steps):
+        for step in range(20, self.sample_steps):  ### 30,
             t = self.sampler.step2t(step)
             z_pred = self(x, cls, t)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 
     @torch.no_grad()
-    def midway_generation(self, x0, cls, step_s=10, step_e=1000, batch_size=9):
+    def midway_generation(self, x0, cls, step_s=20, step_e=1000, batch_size=9):
         z = torch.randn_like(x0)
         step_s_ = torch.ones(x0.shape[0]).long().to(self.device)*step_s
         x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s_),z)
@@ -84,7 +82,7 @@ class LatentDiffusion(nn.Module):
     def validate_generation(self, x0, batch_size=9):
         x0 = x0[:batch_size]
         x = torch.randn_like(x0)
-        for step in range(800, self.sample_steps):
+        for step in range(950, self.sample_steps):  ### 950,
             t = self.sampler.step2t(step)
             if step%2==0:
                 z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * torch.randn_like(x0))\

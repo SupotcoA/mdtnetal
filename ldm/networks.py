@@ -69,7 +69,7 @@ class LatentDiffusion(nn.Module):
         return self.decode(x)
 
     @torch.no_grad()
-    def midway_generation(self, x0, cls, step_s=100, step_e=700, batch_size=9):
+    def midway_generation(self, x0, cls, step_s=100, step_e=800, batch_size=9):
         z = torch.randn_like(x0)
         step_s_ = torch.ones(x0.shape[0]).long().to(self.device)*step_s
         x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s_),z)

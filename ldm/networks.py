@@ -68,14 +68,31 @@ class LatentDiffusion(nn.Module):
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 
+    @torch.no_grad()  ### not used
+    def midway_generation(self, x0, cls, step_s, step_e,batch_size=9):
+        z = torch.randn_like(x0)
+        x =  self.sampler.diffuse(x0, self.sampler.step2t(step),z)
+        acc_loss = 0
+        acc_bias =0
+        for step in range(step_s, step_e):
+            t = self.sampler.step2t(step)
+            z_pred = self(x, cls, t)
+            acc_loss = self.calculate_loss(x-x0)
+            x = self.sampler.step(x, z_pred, t, step)
+        return self.decode(x)
+
     @torch.no_grad()
     def validate_generation(self, x0, batch_size=9):
         x0 = x0[:batch_size]
         x = torch.randn_like(x0)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
-            z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * x0)\
-                     / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
+            if step%4==0:
+                z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * torch.randn_like(x0))\
+                        / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
+            else:
+                z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * x0) \
+                         / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
             z_pred = z_pred \
                      * (1+0.05  \
                      * (torch.arange(batch_size)[:, None, None, None].to(self.device)-4))
@@ -86,8 +103,10 @@ class LatentDiffusion(nn.Module):
     def sim_training(self, x0, cls, batch_size=9):
         z = torch.randn_like(x0)
         t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
+        t_ = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
+        t_[:4] = t[:4]
         x = self.sampler.diffuse(x0, t, z)
-        z_pred = self(x, cls, t)
+        z_pred = self(x, cls, t_)
         x0_pred = self.sampler.rev_diffuse(x, t, z_pred)
         return self.decode(x), self.decode(x0_pred)
 

@@ -67,7 +67,7 @@ class AdaptiveLayerNorm(nn.Module):
     def forward(self, x, c=None):
         beta = torch.mean(x, dim=(2, 3), keepdim=True)
         alpha = torch.var(x, dim=(2, 3), keepdim=True, unbiased=False).sqrt()
-        x = (x - beta) / (alpha + 1e-5)
+        # x = (x - beta) / (alpha + 1e-5)  ### uncomment this
         scale, bias = torch.chunk(self.fc(c), chunks=2, dim=1)
         scale = scale[:, :, None, None]
         bias = bias[:, :, None, None]

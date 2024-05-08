@@ -46,8 +46,8 @@ class TensorDataset(Dataset):
         return self.images.shape[0]
 
     def __getitem__(self, idx):
-        image = self.images[idx % 128]
-        label = self.labels[idx % 128]
+        image = self.images[idx]
+        label = self.labels[idx]
         return image, label
 
 
@@ -59,7 +59,8 @@ class InfiniteDataLoader:
     def __iter__(self):
         while True:
             for data in self.loader:
-                yield data
+                while True:  ### remove while
+                    yield data
 
 
 @torch.no_grad()

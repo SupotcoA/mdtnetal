@@ -41,9 +41,9 @@ def train(model,
                      train_config['outcome_root'])
             vis_imgs(rec_images, logger.step, "rec2",
                      train_config['outcome_root'])
-            #for cls in [0, 1, 2]:
-            #    imgs = model.condional_generation(cls=cls, batch_size=9)
-            #    vis_imgs(imgs, logger.step, cls, train_config['outcome_root'])
+            for cls in [0, 1, 2]:
+                imgs = model.condional_generation(cls=cls, batch_size=9)
+                vis_imgs(imgs, logger.step, cls, train_config['outcome_root'])
             logger.end_generation()
             model.train()
         if logger.step % train_config['train_steps']==0:

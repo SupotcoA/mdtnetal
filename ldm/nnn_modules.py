@@ -20,7 +20,7 @@ class SchedulerBase(nn.Module):
             alphas_cumprod = torch.cos(((x / max_train_steps) + s) / (1 + s) * torch.pi * 0.5) ** 2
             alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
             betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-            self.register_buffer('beta', torch.clip(betas, 0.0001, 0.9999))
+            self.register_buffer('beta', torch.clip(betas, 0.0001, 0.08))  ### 0.08 -> 0.9999
         elif beta_schedule == 'linear':
             self.register_buffer('beta', torch.linspace(1e-4, 0.02, max_train_steps))
         self.register_buffer('alpha', 1 - self.beta)
@@ -29,7 +29,7 @@ class SchedulerBase(nn.Module):
         self.register_buffer('alpha_bar_sqrt', self.alpha_bar.sqrt())
         self.register_buffer('sigma', self.beta.sqrt())
         assert self.beta.max() < 1 and self.beta.min() > 0
-        assert self.alpha_bar[0] > 0.98 and self.alpha_bar[-1] < 0.03
+        assert self.alpha_bar[0] > 0.95 and self.alpha_bar[-1] < 0.05
 
     @torch.no_grad()
     def diffuse(self, x0, t: torch.Tensor, z):

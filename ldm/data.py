@@ -46,8 +46,8 @@ class TensorDataset(Dataset):
         return self.images.shape[0]
 
     def __getitem__(self, idx):
-        div_,mod_=divmod(idx,5000)
-        idx = 5000*div_+(mod_%500)
+        div_,mod_=divmod(idx,5000)  ###
+        idx = 5000*div_+(mod_%150)  ### remove these two lines
         image = self.images[idx]
         label = self.labels[idx]
         return image, label

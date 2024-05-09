@@ -47,7 +47,7 @@ class TensorDataset(Dataset):
 
     def __getitem__(self, idx):
         div_,mod_=divmod(idx,5000)  ###
-        idx = 5000*div_+(mod_%150)  ### remove these two lines
+        idx = 5000*div_+(mod_%200)  ### remove these two lines
         image = self.images[idx]
         label = self.labels[idx]
         return image, label

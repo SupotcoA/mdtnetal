@@ -96,7 +96,7 @@ class ResBlock(nn.Module):
     def __init__(self, in_channels,
                  bottle_neck_channels=None,
                  out_channels=None,
-                 res_bottle_neck_factor=2,
+                 res_bottle_neck_factor=1,
                  c_dim=None):
         super().__init__()
         self.in_channels = in_channels
@@ -405,7 +405,7 @@ class Unet(nn.Module):
 
         # assert len(hs)==0, f"len(hs) = {len(hs)}"
         # end
-        # h = self.norm_out(h, c)
+        h = self.norm_out(h, c)
         h = F.relu_(h)
         h = self.conv_out(h)
         return h

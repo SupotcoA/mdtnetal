@@ -28,7 +28,7 @@ class ImageDataset(Dataset):
 
     def __getitem__(self, idx):
         image_path = self.image_paths[idx]
-        image = np.ascontiguousarray(cv2.imread(image_path)[:,:,::-1])  # Ensure RGB format
+        image = np.ascontiguousarray(cv2.imread(image_path)[:, :, ::-1])  # Ensure RGB format
         label = self.labels[idx]
 
         if self.transform:
@@ -95,23 +95,24 @@ def build_dataset_img(model, data_config):
             x = x_.cpu()
             cls = labels
         else:
-            x = torch.cat((x,x_.cpu()),dim=0)
-            cls = torch.cat((cls,labels),dim=0)
+            x = torch.cat((x, x_.cpu()), dim=0)
+            cls = torch.cat((cls, labels), dim=0)
     print(f"x shape: {x.shape}, cls shape: {cls.shape}")
-    torch.save(x,data_config['x_path'])
-    torch.save(cls,data_config['cls_path'])
+    torch.save(x, data_config['x_path'])
+    torch.save(cls, data_config['cls_path'])
 
 
 @torch.no_grad()
 def build_cached_dataset(data_config):
-    x=torch.load(data_config['x_path'])
-    cls=torch.load(data_config['cls_path'])
+    x = torch.load(data_config['x_path'])
+    cls = torch.load(data_config['cls_path'])
     print(f"x shape: {x.shape}, cls shape: {cls.shape}")
-    assert x.shape[0]==15000
-    s=x.shape[0]
-    split=int(s*data_config['split'])
-    train_data = TensorDataset(x[:split], cls[:split])
-    test_data = TensorDataset(x[split:], cls[split:])
+    assert x.shape[0] == 15000
+    s = x.shape[0]
+    split = int(s * data_config['split'])
+    is_train_idx = torch.randperm(x.shape[0])[:split]
+    train_data = TensorDataset(x[is_train_idx], cls[is_train_idx])
+    test_data = TensorDataset(x[~is_train_idx], cls[~is_train_idx])
     train_data_loader = InfiniteDataLoader(train_data,
                                            batch_size=data_config['batch_size'],
                                            shuffle=True,
@@ -120,8 +121,4 @@ def build_cached_dataset(data_config):
                                   batch_size=data_config['batch_size'],
                                   shuffle=True,
                                   num_workers=4)
-    return train_data_loader,test_data_loader
-
-
-
-
+    return train_data_loader, test_data_loader

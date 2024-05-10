@@ -22,11 +22,11 @@ class LatentDiffusion(nn.Module):
         if self.max_train_steps == self.sample_steps:
             self.sampler = DDPMScheduler(self.max_train_steps,
                                          self.sample_steps,
-                                         'linear')
+                                         diffusion_config['strategy'])
         else:
             self.sampler = DDIMScheduler(self.max_train_steps,
                                          self.sample_steps,
-                                         'linear')
+                                         diffusion_config['strategy'])
         embed_dim = unet_config['c_dim']
         self.time_embed = TimeEmbed(embed_dim=embed_dim,
                                     max_train_steps=diffusion_config['max_train_steps'])

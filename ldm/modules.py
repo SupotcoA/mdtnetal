@@ -114,7 +114,7 @@ class ResBlock(nn.Module):
     def __init__(self, in_channels,
                  bottle_neck_channels=None,
                  out_channels=None,
-                 res_bottle_neck_factor=1,
+                 res_bottle_neck_factor=2,
                  c_dim=None):
         super().__init__()
         self.in_channels = in_channels
@@ -172,7 +172,7 @@ class SemiConvNeXtBlock(nn.Module):
     def __init__(self, in_channels,
                  bottle_neck_channels=None,
                  out_channels=None,
-                 res_bottle_neck_factor=4,
+                 res_bottle_neck_factor=2,  # ConvNeXt: 4
                  c_dim=None):
         super().__init__()
         self.in_channels = in_channels
@@ -190,7 +190,7 @@ class SemiConvNeXtBlock(nn.Module):
                                stride=1,
                                padding='same',
                                bias=False,
-                               groups=in_channels)  # ConvNeXt
+                               groups=in_channels)  # ConvNeXt: depth-wise
         self.norm = AdaptiveLayerNorm(n_channels=in_channels,
                                       c_dim=c_dim)
         self.conv2 = nn.Conv2d(in_channels=in_channels,

@@ -58,16 +58,16 @@ class LatentDiffusion(nn.Module):
         return self.ae.encode(img) * 0.1
 
     @torch.no_grad()
-    def condional_generation(self, cls, step_start, batch_size=9):
+    def condional_generation(self, cls, batch_size=9):
         x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
-        for step in range(step_start, self.sample_steps):  ### 30,
+        for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             z_pred = self(x, cls, t)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 
     @torch.no_grad()
-    def midway_generation(self, x0, cls, step_s=200, step_e=1000, batch_size=9):
+    def midway_generation(self, x0, cls, step_s=400, step_e=1000, batch_size=9):
         z = torch.randn_like(x0)
         step_s_ = torch.ones(x0.shape[0]).long().to(self.device)*step_s
         x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s_),z)
@@ -87,7 +87,7 @@ class LatentDiffusion(nn.Module):
             t = self.sampler.step2t(step)
             z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * x0) \
                       / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
-            z_pred = (z_pred - z_pred.mean()) / (z_pred.var().sqrt()+1e-5)
+            z_pred = z_pred / (z_pred.var().sqrt()+1e-5)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 

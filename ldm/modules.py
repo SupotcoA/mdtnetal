@@ -56,7 +56,7 @@ class UpSample(nn.Module):
         return h
 
 
-class AdaptiveLayerNorm(nn.Module):
+class AdaptiveUnknownNorm(nn.Module):
 
     def __init__(self, n_channels, c_dim):
         super().__init__()
@@ -67,6 +67,24 @@ class AdaptiveLayerNorm(nn.Module):
     def forward(self, x, c=None):
         beta = torch.mean(x, dim=(2, 3), keepdim=True)
         alpha = torch.var(x, dim=(2, 3), keepdim=True, unbiased=False).sqrt()
+        x = (x - beta) / (alpha + 1e-5)
+        scale, bias = torch.chunk(self.fc(c), chunks=2, dim=1)
+        scale = scale[:, :, None, None]
+        bias = bias[:, :, None, None]
+        return x.mul(1 + scale).add(bias)
+
+
+class AdaptiveLayerNorm(nn.Module):
+
+    def __init__(self, n_channels, c_dim):
+        super().__init__()
+        self.n_channels = n_channels
+        self.fc = nn.Sequential(nn.SiLU(),
+                                nn.Linear(c_dim, 2 * n_channels, bias=True))
+
+    def forward(self, x, c=None):
+        beta = torch.mean(x, dim=1, keepdim=True)
+        alpha = torch.var(x, dim=1, keepdim=True, unbiased=False).sqrt()
         x = (x - beta) / (alpha + 1e-5)
         scale, bias = torch.chunk(self.fc(c), chunks=2, dim=1)
         scale = scale[:, :, None, None]
@@ -149,6 +167,65 @@ class ResBlock(nn.Module):
         return x + h  # * self.rescale(c)
 
 
+class SemiConvNeXtBlock(nn.Module):
+
+    def __init__(self, in_channels,
+                 bottle_neck_channels=None,
+                 out_channels=None,
+                 res_bottle_neck_factor=4,
+                 c_dim=None):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels if out_channels else in_channels
+        if bottle_neck_channels is not None:
+            self.bottle_neck_channels = bottle_neck_channels
+        else:
+            self.bottle_neck_channels = int(max(self.out_channels,
+                                                self.in_channels) \
+                                            * res_bottle_neck_factor)
+
+        self.conv1 = nn.Conv2d(in_channels=in_channels,
+                               out_channels=in_channels,
+                               kernel_size=5,  # ConvNeXt: 7
+                               stride=1,
+                               padding='same',
+                               bias=False,
+                               groups=in_channels)  # ConvNeXt
+        self.norm = AdaptiveLayerNorm(n_channels=in_channels,
+                                      c_dim=c_dim)
+        self.conv2 = nn.Conv2d(in_channels=in_channels,
+                               out_channels=self.bottle_neck_channels,
+                               kernel_size=1,
+                               stride=1,
+                               padding='same',
+                               bias=True)
+        self.conv3 = nn.Conv2d(in_channels=self.bottle_neck_channels,
+                               out_channels=self.out_channels,
+                               kernel_size=1,
+                               stride=1,
+                               padding='same',
+                               bias=True)
+        if self.in_channels != self.out_channels:
+            self.conv_shortcut = nn.Conv2d(in_channels=in_channels,
+                                           out_channels=self.out_channels,
+                                           kernel_size=1,
+                                           stride=1,
+                                           padding='same')
+        else:
+            self.conv_shortcut = nn.Identity()
+
+    def forward(self, x, c=None):
+        h = x
+        h = self.conv1(h)
+        h = self.norm(h, c)
+        h = self.conv2(h)
+        h = F.gelu(h)
+        h = self.conv3(h)
+        x = self.conv_shortcut(x)
+
+        return x + h
+
+
 class AdaLNZeroResBlock(nn.Module):
 
     def __init__(self, in_channels,
@@ -159,31 +236,22 @@ class AdaLNZeroResBlock(nn.Module):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels if out_channels else in_channels
-        if bottle_neck_channels is not None:
-            self.bottle_neck_channels = bottle_neck_channels
-        else:
-            self.bottle_neck_channels = int(max(self.out_channels,
-                                                self.in_channels) \
-                                            / res_bottle_neck_factor)
-            self.bottle_neck_channels = max(32, self.bottle_neck_channels)
-        if self.bottle_neck_channels % 32 != 0:
-            self.bottle_neck_channels = 32 * divmod(self.bottle_neck_channels, 32)[0]
 
         self.norm1 = torch.nn.GroupNorm(num_groups=32,
                                         num_channels=in_channels,
                                         eps=1e-6,
                                         affine=True)
         self.conv1 = nn.Conv2d(in_channels=in_channels,
-                               out_channels=self.bottle_neck_channels,
+                               out_channels=in_channels,
                                kernel_size=3,
                                stride=1,
                                padding='same',
                                bias=False)
         self.norm2 = torch.nn.GroupNorm(num_groups=32,
-                                        num_channels=self.bottle_neck_channels,
+                                        num_channels=in_channels,
                                         eps=1e-6,
                                         affine=True)
-        self.conv2 = nn.Conv2d(in_channels=self.bottle_neck_channels,
+        self.conv2 = nn.Conv2d(in_channels=in_channels,
                                out_channels=self.out_channels,
                                kernel_size=3,
                                stride=1,
@@ -279,6 +347,7 @@ class AttnBlock(nn.Module):
 def make_res_block(*args, **kwargs):
     return ResBlock(*args,**kwargs)
     # return AdaLNZeroResBlock(*args, **kwargs)
+    # return SemiConvNeXtBlock(*args, **kwargs)
 
 
 class Unet(nn.Module):

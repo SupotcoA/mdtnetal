@@ -83,15 +83,11 @@ class LatentDiffusion(nn.Module):
         x0 = x0[:batch_size]
         x = torch.randn_like(x0)* \
             (torch.arange(batch_size)[:, None, None, None].to(self.device)/2/batch_size+0.5)
-        for step in range(999, self.sample_steps):  ### 950,
+        for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
-            if step % 2 == 0:
-                z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * torch.randn_like(x0))\
-                        / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
-            else:
-                z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * torch.flip(x0,[0])) \
-                         / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
-
+            z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * x0) \
+                      / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
+            z_pred = (z_pred - z_pred.mean()) / (z_pred.var().sqrt()+1e-5)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 

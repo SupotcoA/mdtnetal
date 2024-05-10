@@ -361,6 +361,7 @@ class Unet(nn.Module):
                  n_channels=64,
                  channels_mult=(1, 2, 2, 4),
                  num_res_blocks=2,
+                 res_bottle_neck_factor=2,
                  c_dim=None):
         super().__init__()
 
@@ -392,6 +393,7 @@ class Unet(nn.Module):
             for i_block in range(self.num_res_blocks):
                 block.append(make_res_block(in_channels=block_in,
                                             out_channels=block_out,
+                                            res_bottle_neck_factor=res_bottle_neck_factor,
                                             c_dim=c_dim))
                 block_in = block_out
 
@@ -406,10 +408,12 @@ class Unet(nn.Module):
         self.mid = nn.Module()
         self.mid.block_1 = make_res_block(in_channels=block_in,
                                           out_channels=block_in,
+                                          res_bottle_neck_factor=res_bottle_neck_factor,
                                           c_dim=c_dim)
         self.mid.attn_1 = nn.Identity()  # AttnBlock(block_in)
         self.mid.block_2 = make_res_block(in_channels=block_in,
                                           out_channels=block_in,
+                                          res_bottle_neck_factor=res_bottle_neck_factor,
                                           c_dim=c_dim)
 
         # upsampling
@@ -424,6 +428,7 @@ class Unet(nn.Module):
                     skip_in = ch * in_ch_mult[i_level]
                 block.append(make_res_block(in_channels=block_in + skip_in,
                                             out_channels=block_out,
+                                            res_bottle_neck_factor=res_bottle_neck_factor,
                                             c_dim=c_dim))
                 block_in = block_out
             up = nn.Module()

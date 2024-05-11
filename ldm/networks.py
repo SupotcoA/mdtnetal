@@ -68,6 +68,8 @@ class LatentDiffusion(nn.Module):
 
     @torch.no_grad()
     def midway_generation(self, x0, cls, step_s=400, step_e=1000, batch_size=9):
+        step_s = int(step_s * self.sample_steps / 1000)
+        step_e = max(self.sample_steps, int(step_e * self.sample_steps / 1000))
         z = torch.randn_like(x0)
         step_s_ = torch.ones(x0.shape[0]).long().to(self.device)*step_s
         x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s_),z)
@@ -81,13 +83,16 @@ class LatentDiffusion(nn.Module):
     @torch.no_grad()
     def validate_generation(self, x0, batch_size=9):
         x0 = x0[:batch_size]
-        x = torch.randn_like(x0)* \
+        x = torch.randn_like(x0) * \
             (torch.arange(batch_size)[:, None, None, None].to(self.device)/2/batch_size+0.5)
+        bias = torch.randn_like(x)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             z_pred = (x - self.sampler.alpha_bar_sqrt[t - 1] * x0) \
                       / (1 - self.sampler.alpha_bar[t - 1]).sqrt()
             z_pred = z_pred / (z_pred.var().sqrt()+1e-5)
+            z_pred += bias * 0.16**0.5
+            bias = 0.9**0.5*bias + 0.1**0.5*torch.randn_like(bias)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 

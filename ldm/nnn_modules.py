@@ -20,7 +20,7 @@ class SchedulerBase(nn.Module):
             alphas_cumprod = torch.cos(((x / max_train_steps) + s) / (1 + s) * torch.pi * 0.5) ** 2
             alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
             betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-            self.register_buffer('beta', torch.clip(betas, 0.0001, 0.9999))  ### 0.08 -> 0.9999
+            self.register_buffer('beta', torch.clip(betas, 0.0001, 0.1))  ### 0.9999
         elif beta_schedule == 'linear':
             self.register_buffer('beta', torch.linspace(1e-4, 0.02, max_train_steps))
         self.register_buffer('alpha', 1 - self.beta)

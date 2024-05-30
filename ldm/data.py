@@ -61,7 +61,7 @@ class InfiniteDataLoader:
 def build_dataset_img(model, data_config):
     dataset2label = {name: i for i, name in enumerate(data_config['dataset_names'])}
 
-    for i, name in dataset2label.items():
+    for name,i in dataset2label.items():
         if name in ['afhq', 'fa', 'animestyle']:
             transform = transforms.Compose([
                 transforms.ToTensor(),
@@ -74,7 +74,7 @@ def build_dataset_img(model, data_config):
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
             ])
         print("processing", name)
-        data_dir = data_config['data_paths']['name']
+        data_dir = data_config['data_paths'][name]
         dataset = ImageDataset(data_dir,
                                transform=transform,
                                label=i

@@ -61,11 +61,11 @@ class InfiniteDataLoader:
 def build_dataset_img(model, data_config):
     dataset2label = {name: i for i, name in enumerate(data_config['dataset_names'])}
 
-    for i, name in dataset2label:
+    for i, name in dataset2label.items():
         if name in ['afhq', 'fa', 'animestyle']:
             transform = transforms.Compose([
                 transforms.ToTensor(),
-                transforms.Resize(data_config['image_size'],antialias=True),
+                transforms.Resize(data_config['image_size'], antialias=True),
                 transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
             ])
         else:

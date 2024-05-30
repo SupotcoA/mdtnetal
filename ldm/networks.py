@@ -51,11 +51,11 @@ class LatentDiffusion(nn.Module):
 
     @torch.no_grad()
     def decode(self, x):
-        return torch.clip(self.ae.decode(x / 0.1 / 3), -1, 1)  ### /3 see data.TensorDataset
+        return torch.clip(self.ae.decode(x), -1, 1)  ### /3 see data.TensorDataset
 
     @torch.no_grad()
     def encode(self, img):
-        return self.ae.encode(img) * 0.1
+        return self.ae.encode(img)
 
     @torch.no_grad()
     def condional_generation(self, cls, batch_size=9):

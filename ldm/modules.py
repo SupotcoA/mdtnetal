@@ -410,7 +410,7 @@ class Unet(nn.Module):
                                           out_channels=block_in,
                                           res_bottle_neck_factor=res_bottle_neck_factor,
                                           c_dim=c_dim)
-        self.mid.attn_1 = nn.Identity()  # AttnBlock(block_in)
+        self.mid.attn_1 = AttnBlock(block_in)
         self.mid.block_2 = make_res_block(in_channels=block_in,
                                           out_channels=block_in,
                                           res_bottle_neck_factor=res_bottle_neck_factor,

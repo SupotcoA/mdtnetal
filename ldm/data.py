@@ -5,7 +5,18 @@ from torchvision import transforms
 import cv2
 import numpy as np
 import os
-import glob
+
+
+def get_all_image_paths(directory):
+    image_extensions = ('.jpg', '.png')
+    image_paths = []
+
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.lower().endswith(image_extensions):
+                absolute_path = os.path.join(root, file)
+                image_paths.append(absolute_path)
+    return image_paths
 
 
 class ImageDataset(Dataset):
@@ -16,9 +27,7 @@ class ImageDataset(Dataset):
         self.label = label
 
         # Gather image paths and labels for all classes
-        self.image_paths = []
-        for extension in ['*.jpg', '*.png']:
-            self.image_paths.extend(glob.glob(os.path.join(data_dir, extension)))
+        self.image_paths = get_all_image_paths(data_dir)
 
     def __len__(self):
         return len(self.image_paths)

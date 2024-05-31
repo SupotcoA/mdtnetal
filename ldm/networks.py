@@ -46,33 +46,38 @@ class LatentDiffusion(nn.Module):
         z = torch.randn_like(x0)
         t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
         x = self.sampler.diffuse(x0, t, z)
-        z_pred = self(x, cls, t)
+        z_pred = self(x, cls, t, cls_mask_ratio=0.15)
         return self.calculate_loss(z, z_pred)
 
     @torch.no_grad()
     def decode(self, x):
-        return torch.clip(self.ae.decode(x), -1, 1)  ### /3 see data.TensorDataset
+        return torch.clip(self.ae.decode(x * 4.5), -1, 1)  ### * 4.5 see data.TensorDataset
 
     @torch.no_grad()
     def encode(self, img):
         return self.ae.encode(img)
 
     @torch.no_grad()
-    def condional_generation(self, cls, batch_size=9):
+    def condional_generation(self, cls, guidance_scale=1, batch_size=9):
         x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             z_pred = self(x, cls, t)
+            if guidance_scale > 1.0001:
+                z_pred_unconditional = self(x, cls, t, cls_mask_ratio=1)
+                z_pred = z_pred * guidance_scale + z_pred_unconditional * (1-guidance_scale)
             x = self.sampler.step(x, z_pred, t, step)
         return self.decode(x)
 
     @torch.no_grad()
     def midway_generation(self, x0, cls, step_s=400, step_e=1000, batch_size=9):
+        x0 = x0[:batch_size]
+        cls = cls[:batch_size]
         step_s = int(step_s * self.sample_steps / 1000)
         step_e = min(self.sample_steps, int(step_e * self.sample_steps / 1000))
         z = torch.randn_like(x0)
         step_s_ = torch.ones(x0.shape[0]).long().to(self.device)*step_s
-        x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s_),z)
+        x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s_), z)
         x = x_.detach()
         for step in range(step_s, step_e):
             t = self.sampler.step2t(step)
@@ -98,6 +103,8 @@ class LatentDiffusion(nn.Module):
 
     @torch.no_grad()
     def sim_training(self, x0, cls, batch_size=9):
+        x0=x0[:batch_size]
+        cls=cls[:batch_size]
         z = torch.randn_like(x0)
         t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
         x = self.sampler.diffuse(x0, t, z)
@@ -105,14 +112,72 @@ class LatentDiffusion(nn.Module):
         x0_pred = self.sampler.rev_diffuse(x, t, z_pred)
         return self.decode(x), self.decode(x0_pred)
 
-    def forward(self, x, cls, t):
+    def forward(self, x, cls, t, cls_mask_ratio=0):
         t = self.time_embed(t)
         cls = self.class_embed(cls)
         if len(t.shape) == 1:
             t = t.repeat((x.shape[0], 1))
         if len(cls.shape) == 1:
             cls = cls.repeat((x.shape[0], 1))
+        if cls_mask_ratio > 0:
+            cls[torch.rand(cls.shape[0]) < cls_mask_ratio] *= 0
         c = torch.cat((t, cls), dim=1)
         c = self.condition_embed(c)
         z_pred = self.unet(x, c)
         return z_pred
+
+
+class LatentDiffusion2(LatentDiffusion):
+
+    # loss = (x0 - x0_pred) ** 2
+
+    def train_step(self, x0, cls):
+        z = torch.randn_like(x0)
+        t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
+        x = self.sampler.diffuse(x0, t, z)
+        x0_pred = self(x, cls, t, cls_mask_ratio=0.15)
+        return self.calculate_loss(x0, x0_pred)
+
+    @torch.no_grad()
+    def condional_generation(self, cls, guidance_scale=1, batch_size=9):
+        x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
+        for step in range(self.sample_steps):
+            t = self.sampler.step2t(step)
+            x0_pred = self(x, cls, t)
+            if guidance_scale > 1.0001:
+                x0_pred_unconditional = self(x, cls, t, cls_mask_ratio=1)
+                x0_pred = x0_pred * guidance_scale + x0_pred_unconditional * (1-guidance_scale)
+            z_pred = self.sampler.calc_z_pred(x, x0_pred, t)
+            x = self.sampler.step(x, z_pred, t, step)
+        return self.decode(x)
+
+    @torch.no_grad()
+    def midway_generation(self, x0, cls, step_s=400, step_e=1000, batch_size=9):
+        x0 = x0[:batch_size]
+        cls = cls[:batch_size]
+        step_s = int(step_s * self.sample_steps / 1000)
+        step_e = min(self.sample_steps, int(step_e * self.sample_steps / 1000))
+        z = torch.randn_like(x0)
+        step_s_ = torch.ones(x0.shape[0]).long().to(self.device)*step_s
+        x_ = self.sampler.diffuse(x0, self.sampler.step2t(step_s_), z)
+        x = x_.detach()
+        for step in range(step_s, step_e):
+            t = self.sampler.step2t(step)
+            x0_pred = self(x, cls, t)
+            z_pred = self.sampler.calc_z_pred(x, x0_pred, t)
+            x = self.sampler.step(x, z_pred, t, step)
+        return self.decode(x_), self.decode(x)
+
+    @torch.no_grad()
+    def sim_training(self, x0, cls, batch_size=9):
+        x0=x0[:batch_size]
+        cls=cls[:batch_size]
+        z = torch.randn_like(x0)
+        t = torch.randint(low=1, high=self.max_train_steps + 1, size=cls.shape).to(x0.device)
+        x = self.sampler.diffuse(x0, t, z)
+        x0_pred = self(x, cls, t)
+        return self.decode(x), self.decode(x0_pred)
+
+
+
+

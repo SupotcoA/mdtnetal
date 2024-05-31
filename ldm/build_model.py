@@ -1,5 +1,5 @@
 import torch
-from networks import LatentDiffusion
+from networks import LatentDiffusion2 as LatentDiffusion
 from utils import print_num_params
 
 

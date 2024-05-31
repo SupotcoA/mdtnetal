@@ -6,6 +6,7 @@ def train(model,
           optim,
           lr_scheduler,
           train_config,
+          data_config,
           train_dataset,
           test_dataset):
     logger = Logger(init_val=0,
@@ -30,7 +31,7 @@ def train(model,
             test(model,
                  train_config,
                  test_dataset)
-            noised_images,rec_images = model.sim_training(x0, cls, batch_size=9)
+            noised_images, rec_images = model.sim_training(x0, cls, batch_size=9)
             logger.start_generation()
             vis_imgs(noised_images, logger.step, "noised",
                      train_config['outcome_root'])
@@ -43,9 +44,15 @@ def train(model,
                      train_config['outcome_root'])
             vis_imgs(rec_images, logger.step, f"rec{step_s}",
                      train_config['outcome_root'])
-            for cls in [0, 1, 2]:
-                imgs = model.condional_generation(cls=cls, batch_size=9)
-                vis_imgs(imgs, logger.step, cls, train_config['outcome_root'])
+            for cls in [0, 1, 2, 3, 4, 5]:
+                for guidance_scale in [1, 2.5, 5]:
+                    imgs = model.condional_generation(cls=cls,
+                                                      batch_size=9,
+                                                      guidance_scale=guidance_scale)
+                    vis_imgs(imgs,
+                             logger.step,
+                             f"g{guidance_scale}_{data_config['dataset_names'][cls]}",
+                             train_config['outcome_root'])
             logger.end_generation()
             model.train()
         if logger.step % train_config['train_steps']==0:

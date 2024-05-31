@@ -43,7 +43,7 @@ class ImageDataset(Dataset):
 
 class TensorDataset(Dataset):
     def __init__(self, images, labels):
-        self.images = images
+        self.images = images / 4.5  ### / 4.5 see networks.LatentDiffusion.decode
         self.labels = labels
 
     def __len__(self):
@@ -70,7 +70,7 @@ class InfiniteDataLoader:
 def build_dataset_img(model, data_config):
     dataset2label = {name: i for i, name in enumerate(data_config['dataset_names'])}
 
-    for name,i in dataset2label.items():
+    for name, i in dataset2label.items():
         if name in ['afhq', 'fa', 'animestyle']:
             transform = transforms.Compose([
                 transforms.ToTensor(),
@@ -115,23 +115,28 @@ def build_dataset_img(model, data_config):
 
 @torch.no_grad()
 def build_cached_dataset(data_config):
-    x = torch.load(data_config['x_path'])
-    cls = torch.load(data_config['cls_path'])
+    x = []
+    cls = []
+    for name in data_config['dataset_names']:
+        x.append(torch.load(os.path.join(data_config['enc_inp_path'], f'{name}_x.pt')))
+        cls.append(torch.load(os.path.join(data_config['enc_inp_path'], f'{name}_cls.pt')))
+    x = torch.cat(x, dim=0)
+    cls = torch.cat(cls, dim=0)
     print(f"x shape: {x.shape}, cls shape: {cls.shape}")
-    # assert x.shape[0] == 15000
+
     s = x.shape[0]
-    split = int(s * data_config['split'])
-    perm_idx = torch.randperm(x.shape[0])
-    train_idx = perm_idx[:split]
-    test_idx = perm_idx[split:]
-    train_data = TensorDataset(x[train_idx], cls[train_idx])
-    test_data = TensorDataset(x[test_idx], cls[test_idx])
+    select_every_n = round(1 / (1 - data_config['split']))
+    is_test = torch.arange(0, s) % select_every_n == 0
+    train_data = TensorDataset(x[~is_test], cls[~is_test])
+    print("train length", len(train_data))
+    test_data = TensorDataset(x[is_test], cls[is_test])
+    print("test length", len(test_data))
     train_data_loader = InfiniteDataLoader(train_data,
                                            batch_size=data_config['batch_size'],
                                            shuffle=True,
                                            num_workers=4)
     test_data_loader = DataLoader(test_data,
                                   batch_size=data_config['batch_size'],
-                                  shuffle=True,
+                                  shuffle=False,
                                   num_workers=4)
     return train_data_loader, test_data_loader

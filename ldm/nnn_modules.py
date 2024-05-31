@@ -45,8 +45,11 @@ class SchedulerBase(nn.Module):
 
     @torch.no_grad()
     def calc_z_pred(self, x, x0, t: torch.Tensor):
-        z = (x - self.alpha_bar_sqrt[t - 1][:, None, None, None] * x0_pred) \
-            / (1 - self.alpha_bar[t - 1]).sqrt()[:, None, None, None]
+        try:
+            z = (x - self.alpha_bar_sqrt[t - 1][:, None, None, None] * x0) \
+                / (1 - self.alpha_bar[t - 1]).sqrt()[:, None, None, None]
+        except:
+            raise AssertionError(f"{t}")
         return z
 
 

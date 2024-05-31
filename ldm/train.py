@@ -14,9 +14,9 @@ def train(model,
                     log_every_n_steps=train_config['log_every_n_steps'])
     for [x0, cls] in train_dataset:
         check_ae(model, x0.to(model.device), train_config['outcome_root'])
-        imgs = model.validate_generation(x0.to(model.device))
-        vis_imgs(imgs, "rev_dif_check", "rev_dif_check",
-                 train_config['outcome_root'], use_plt=True)
+        # imgs = model.validate_generation(x0.to(model.device))
+        # vis_imgs(imgs, "rev_dif_check", "rev_dif_check",
+        #          train_config['outcome_root'], use_plt=True)
         break
     for [x0, cls] in train_dataset:
         x0, cls = x0.to(model.device), cls.to(model.device)

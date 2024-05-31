@@ -45,11 +45,12 @@ class SchedulerBase(nn.Module):
 
     @torch.no_grad()
     def calc_z_pred(self, x, x0, t: torch.Tensor):
-        try:
+        if not isinstance(t, torch.Tensor) or len(t.shape) == 0:
+            z = (x - self.alpha_bar_sqrt[t - 1] * x0) \
+                / (1 - self.alpha_bar[t - 1]).sqrt()
+        else:
             z = (x - self.alpha_bar_sqrt[t - 1][:, None, None, None] * x0) \
                 / (1 - self.alpha_bar[t - 1]).sqrt()[:, None, None, None]
-        except:
-            raise AssertionError(f"{t}")
         return z
 
 
@@ -95,7 +96,7 @@ class DDIMScheduler(SchedulerBase):
             alpha_bar_sqrt_prev = 1
         else:
             alpha_bar_sqrt_prev = self.alpha_bar_sqrt[t_prev - 1]
-        return alpha_bar_sqrt_prev * (x - (1 - self.alpha_bar[t - 1]).sqrt() * z_pred)\
+        return alpha_bar_sqrt_prev * (x - (1 - self.alpha_bar[t - 1]).sqrt() * z_pred) \
                / self.alpha_bar_sqrt[t - 1]
 
     @torch.no_grad()
@@ -127,7 +128,7 @@ class TimeEmbed(nn.Module):
 
     @staticmethod
     def get_sinusoidal(embed_dim, max_train_steps):
-        timesteps = torch.arange(1, 1+max_train_steps)
+        timesteps = torch.arange(1, 1 + max_train_steps)
         half_dim = embed_dim // 2
         emb = np.log(10000) / (half_dim - 1)
         emb = torch.exp(torch.arange(half_dim, dtype=torch.float32) * -emb)

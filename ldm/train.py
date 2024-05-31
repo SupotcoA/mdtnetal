@@ -1,6 +1,6 @@
 import torch
 from utils import Logger, vis_imgs, check_ae
-
+import os
 
 def train(model,
           optim,
@@ -55,7 +55,12 @@ def train(model,
                              train_config['outcome_root'])
             logger.end_generation()
             model.train()
-        if logger.step % train_config['train_steps']==0:
+        if logger.step % train_config['train_steps'] == 0:
+            if train_config['save']:
+                state_dict = {name: param for name, param in model.cpu().state_dict().items()
+                              if not name.startswith('ae.')}
+                torch.save(state_dict,
+                           os.path.join(train_config['outcome_root'], f"ldm{logger.step}.pth"))
             break
 
 

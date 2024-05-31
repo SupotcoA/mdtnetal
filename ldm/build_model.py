@@ -14,6 +14,10 @@ def build_model(data_config,
                             diffusion_config)
     print_num_params(model.ae, "AE", train_config['log_path'])
     print_num_params(model.unet, "Unet", train_config['log_path'])
+    if train_config['pretrained']:
+        model.load_state_dict(torch.load(train_config['pretrained'],
+                                         map_location=torch.device('cpu')),
+                              strict=False)
     if torch.cuda.is_available():
         model.cuda()
         print("running on cuda")

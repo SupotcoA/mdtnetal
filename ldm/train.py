@@ -11,9 +11,9 @@ def train(model,
           train_dataset,
           test_dataset):
 
-    def conditional_generation():
+    def conditional_generation(guidance_scales=[1, 3]):
         for cls in [0, 1, 2, 3, 4, 5]:
-            for guidance_scale in [1, 2.5, 5]:
+            for guidance_scale in guidance_scales:
                 imgs = model.condional_generation(cls=cls,
                                                   batch_size=9,
                                                   guidance_scale=guidance_scale)
@@ -26,15 +26,21 @@ def train(model,
                     log_path=train_config['log_path'],
                     log_every_n_steps=train_config['log_every_n_steps'])
     if train_config['train_steps']==0:
-        conditional_generation()
+        model.eval()
+        print("Start inference")
+        conditional_generation(guidance_scales=[1,2,3,4,5,6])
         return
+
     for [x0, cls] in train_dataset:
+        model.eval()
         check_ae(model, x0.to(model.device), train_config['outcome_root'])
         # imgs = model.validate_generation(x0.to(model.device))
         # vis_imgs(imgs, "rev_dif_check", "rev_dif_check",
         #          train_config['outcome_root'], use_plt=True)
         break
+
     for [x0, cls] in train_dataset:
+        model.train()
         x0, cls = x0.to(model.device), cls.to(model.device)
         loss = model.train_step(x0, cls)
         optim.zero_grad()
@@ -44,6 +50,7 @@ def train(model,
         if train_config['use_lr_scheduler']:
             lr_scheduler.step()
         if logger.step % train_config['eval_every_n_steps']==0:
+            model.eval()
             test(model,
                  train_config,
                  test_dataset)
@@ -62,7 +69,6 @@ def train(model,
                      train_config['outcome_root'])
             conditional_generation()
             logger.end_generation()
-            model.train()
         if logger.step % train_config['train_steps'] == 0:
             if train_config['save']:
                 state_dict = {name: param for name, param in model.cpu().state_dict().items()

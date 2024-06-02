@@ -1,7 +1,8 @@
 import torch
 from torch import nn
 from autoencoder import AutoEncoder
-from modules import Unet, DDPMScheduler, DDIMScheduler, TimeEmbed, ClassEmbed
+from modules import Unet, UnetV2
+from nnn_modules import DDPMScheduler, DDIMScheduler, TimeEmbed, ClassEmbed
 
 
 class LatentDiffusion(nn.Module):

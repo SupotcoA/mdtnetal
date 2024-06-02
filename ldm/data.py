@@ -118,6 +118,8 @@ def build_cached_dataset(data_config):
     x = []
     cls = []
     for name in data_config['dataset_names']:
+        if name in data_config['ignored_dataset']:
+            continue
         x.append(torch.load(os.path.join(data_config['enc_inp_path'], f'{name}_x.pt')))
         cls.append(torch.load(os.path.join(data_config['enc_inp_path'], f'{name}_cls.pt')))
     x = torch.cat(x, dim=0)

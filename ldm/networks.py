@@ -18,7 +18,10 @@ class LatentDiffusion(nn.Module):
         self.latent_dim = ae_config['latent_dim']
         self.max_train_steps = diffusion_config['max_train_steps']
         self.sample_steps = diffusion_config['sample_steps']
-        self.unet = Unet(**unet_config)
+        if unet_config['unet_version']=='v2':
+            self.unet = UnetV2(**unet_config)
+        else:
+            self.unet = Unet(**unet_config)
         self.ae = AutoEncoder(**ae_config)
         if self.max_train_steps == self.sample_steps:
             self.sampler = DDPMScheduler(self.max_train_steps,

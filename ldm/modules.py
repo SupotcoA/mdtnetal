@@ -244,7 +244,7 @@ class ResBlockV2(nn.Module):
             if self.bottle_neck_channels % 32 != 0:
                 self.bottle_neck_channels = 32 * (self.bottle_neck_channels // 32 + 1)
 
-        self.norm1 = nn.GroupNorm(in_channels, 32)
+        self.norm1 = nn.GroupNorm(32, in_channels)
         self.conv1 = nn.Conv2d(in_channels=in_channels,
                                out_channels=self.bottle_neck_channels,
                                kernel_size=3,
@@ -501,7 +501,7 @@ class MultiHeadAttnBlock(nn.Module):
                     in_channels % head_channels == 0
             ), f"q,k,v channels {in_channels} is not divisible by num_head_channels {head_channels}"
             self.num_heads = in_channels // head_channels
-        self.norm = nn.GroupNorm(in_channels, 32)
+        self.norm = nn.GroupNorm(32, in_channels)
         self.qkv = nn.Conv1d(in_channels, in_channels * 3, 1)
         self.attention = QKVAttention(self.num_heads)
 
@@ -523,11 +523,7 @@ def make_res_block(*args, **kwargs):
 
 
 def make_res_block_v2(*args, **kwargs):
-    try:
-        return ResBlockV2(*args, **kwargs)
-    except:
-        print(args,kwargs)
-        raise
+    return ResBlockV2(*args, **kwargs)
 
 
 def make_attn_block(in_channels, embed_channels=None, head_channels=None):
@@ -770,7 +766,7 @@ class UnetV2(nn.Module):
             self.up.insert(0, up)  # prepend to get consistent order
 
         # end
-        self.norm_out = nn.GroupNorm(block_in, 32)
+        self.norm_out = nn.GroupNorm(32, block_in)
 
         self.conv_out = torch.nn.Conv2d(block_in,
                                         out_ch,

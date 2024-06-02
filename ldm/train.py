@@ -2,6 +2,7 @@ import torch
 from utils import Logger, vis_imgs, check_ae
 import os
 
+
 def train(model,
           optim,
           lr_scheduler,
@@ -9,9 +10,24 @@ def train(model,
           data_config,
           train_dataset,
           test_dataset):
+
+    def conditional_generation():
+        for cls in [0, 1, 2, 3, 4, 5]:
+            for guidance_scale in [1, 2.5, 5]:
+                imgs = model.condional_generation(cls=cls,
+                                                  batch_size=9,
+                                                  guidance_scale=guidance_scale)
+                vis_imgs(imgs,
+                         logger.step,
+                         f"g{guidance_scale}_{data_config['dataset_names'][cls]}",
+                         train_config['outcome_root'])
+
     logger = Logger(init_val=0,
                     log_path=train_config['log_path'],
                     log_every_n_steps=train_config['log_every_n_steps'])
+    if train_config['train_steps']==0:
+        conditional_generation()
+        return
     for [x0, cls] in train_dataset:
         check_ae(model, x0.to(model.device), train_config['outcome_root'])
         # imgs = model.validate_generation(x0.to(model.device))
@@ -44,15 +60,7 @@ def train(model,
                      train_config['outcome_root'])
             vis_imgs(rec_images, logger.step, f"rec{step_s}",
                      train_config['outcome_root'])
-            for cls in [0, 1, 2, 3, 4, 5]:
-                for guidance_scale in [1, 2.5, 5]:
-                    imgs = model.condional_generation(cls=cls,
-                                                      batch_size=9,
-                                                      guidance_scale=guidance_scale)
-                    vis_imgs(imgs,
-                             logger.step,
-                             f"g{guidance_scale}_{data_config['dataset_names'][cls]}",
-                             train_config['outcome_root'])
+            conditional_generation()
             logger.end_generation()
             model.train()
         if logger.step % train_config['train_steps'] == 0:

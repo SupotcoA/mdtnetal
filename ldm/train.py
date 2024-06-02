@@ -66,7 +66,7 @@ def train(model,
         if logger.step % train_config['train_steps'] == 0:
             if train_config['save']:
                 state_dict = {name: param for name, param in model.cpu().state_dict().items()
-                              if not name.startswith('ae.')}
+                              if not (name.startswith('ae.') or name.startswith('sampler.'))}
                 torch.save(state_dict,
                            os.path.join(train_config['outcome_root'], f"ldm{logger.step}.pth"))
             break

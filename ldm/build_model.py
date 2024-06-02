@@ -15,9 +15,13 @@ def build_model(data_config,
     print_num_params(model.ae, "AE", train_config['log_path'])
     print_num_params(model.unet, "Unet", train_config['log_path'])
     if train_config['pretrained']:
-        model.load_state_dict(torch.load(train_config['pretrained'],
-                                         map_location=torch.device('cpu')),
-                              strict=False)
+        sd=torch.load(train_config['pretrained'], map_location=torch.device('cpu'))
+        keys = list(sd.keys())
+        for k in keys:
+            for ik in ['ae.', 'sampler.']:
+                if k.startswith(ik):
+                    del sd[k]
+        model.load_state_dict(sd, strict=True)
     if torch.cuda.is_available():
         model.cuda()
         print("running on cuda")

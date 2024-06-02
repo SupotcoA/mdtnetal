@@ -241,6 +241,8 @@ class ResBlockV2(nn.Module):
                                                 self.in_channels) \
                                             / res_bottle_neck_factor)
             self.bottle_neck_channels = max(32, self.bottle_neck_channels)
+            if self.bottle_neck_channels % 32 != 0:
+                self.bottle_neck_channels = 32 * (self.bottle_neck_channels // 32 + 1)
 
         self.norm1 = nn.GroupNorm(in_channels, 32)
         self.conv1 = nn.Conv2d(in_channels=in_channels,

@@ -21,7 +21,7 @@ def build_model(data_config,
             for ik in ['ae.', 'sampler.']:
                 if k.startswith(ik):
                     del sd[k]
-        model.load_state_dict(sd, strict=True)
+        model.load_state_dict(sd, strict=False)
     if torch.cuda.is_available():
         model.cuda()
         print("running on cuda")

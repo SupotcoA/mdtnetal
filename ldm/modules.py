@@ -523,7 +523,11 @@ def make_res_block(*args, **kwargs):
 
 
 def make_res_block_v2(*args, **kwargs):
-    return ResBlockV2(*args, **kwargs)
+    try:
+        return ResBlockV2(*args, **kwargs)
+    except:
+        print(args,kwargs)
+        raise
 
 
 def make_attn_block(in_channels, embed_channels=None, head_channels=None):
@@ -683,7 +687,7 @@ class UnetV2(nn.Module):
                  num_res_blocks=2,
                  res_bottle_neck_factor=2,
                  c_dim=None,
-                 attn_resolutions=(4, 8, 16),
+                 attn_resolutions=(8, 16),
                  **ignoredkeys):
         super().__init__()
 

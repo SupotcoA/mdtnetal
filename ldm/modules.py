@@ -272,7 +272,7 @@ class ResBlockV2(nn.Module):
 
     def forward(self, x, c=None):
         h = x
-        h = self.norm1(h, c)
+        h = self.norm1(h)
         h = F.relu_(h)
         h = self.conv1(h)
         h = self.norm2(h, c)

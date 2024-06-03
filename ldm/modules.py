@@ -805,7 +805,7 @@ class UnetV2(nn.Module):
 
         # assert len(hs)==0, f"len(hs) = {len(hs)}"
         # end
-        h = self.norm_out(h, c)
+        h = self.norm_out(h)
         h = F.relu_(h)
         h = self.conv_out(h)
         return h

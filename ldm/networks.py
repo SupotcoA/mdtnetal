@@ -156,6 +156,22 @@ class LatentDiffusion2(LatentDiffusion):
         return self.decode(x)
 
     @torch.no_grad()
+    def validate_condional_generation(self, cls, guidance_scale=1, batch_size=20):
+        x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
+        x0 = torch.randn_like(x) + 0.3
+        exp_noise = []
+        pred_noise = []
+        for step in range(self.sample_steps):
+            t = self.sampler.step2t(step)
+            z_pred = self.sampler.calc_z_pred(x, x0, t)
+            x = self.sampler.step(x, z_pred, t, step)
+            exp_noise.append((z_pred**2).mean().cpu().item())
+            x_ = self.sampler.diffuse(x0, t, torch.randn_like(x0))
+            z_pred = self.sampler.calc_z_pred(x_, x0, t)
+            pred_noise.append((z_pred**2).mean().cpu().item())
+        return exp_noise, pred_noise
+
+    @torch.no_grad()
     def seq_condional_generation(self, cls, guidance_scale=1, n_steps=10, batch_size=3):
         seq_pred_x = []
         seq_x = []

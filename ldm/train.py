@@ -11,6 +11,11 @@ def train(model,
           train_dataset,
           test_dataset):
     def conditional_generation(guidance_scales=[1, ]):
+        import matplotlib.pyplot as plt
+        exp_noise, pred_noise = model.validate_condional_generation(0)
+        plt.plot(exp_noise)
+        plt.plot(pred_noise)
+        plt.show()
         for cls, stop_t in zip([0, 1, 2, 4, 5], [200, 200, 200, 150, 200]):  ### 3 = fa
 
             for guidance_scale in guidance_scales:

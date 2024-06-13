@@ -166,7 +166,7 @@ class LatentDiffusion2(LatentDiffusion):
             z_pred = self.sampler.calc_z_pred(x, x0, t)
             x = self.sampler.step(x, z_pred, t, step)
             exp_noise.append((z_pred**2).mean().cpu().item())
-            x_ = self.sampler.diffuse(x0, torch.ones(x_.shape[0]).long().to(self.device)*t, torch.randn_like(x0))
+            x_ = self.sampler.diffuse(x0, torch.ones(x.shape[0]).long().to(self.device)*t, torch.randn_like(x0))
             z_pred = self.sampler.calc_z_pred(x_, x0, t)
             pred_noise.append((z_pred**2).mean().cpu().item())
         return exp_noise, pred_noise

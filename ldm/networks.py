@@ -156,6 +156,25 @@ class LatentDiffusion2(LatentDiffusion):
         return self.decode(x)
 
     @torch.no_grad()
+    def seq_condional_generation(self, cls, guidance_scale=1, n_steps=10):
+        seq_pred_x=[]
+        seq_x=[]
+        x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
+        for step in range(self.sample_steps):
+            t = self.sampler.step2t(step)
+            x0_pred = self(x, cls, t)
+            if guidance_scale > 1.0001:
+                x0_pred_unconditional = self(x, cls, t, cls_mask_ratio=1)
+                x0_pred = x0_pred * guidance_scale + x0_pred_unconditional * (1 - guidance_scale)
+            z_pred = self.sampler.calc_z_pred(x, x0_pred, t)
+            x = self.sampler.step(x, z_pred, t, step)
+            if (1+step) % (self.sample_steps // n_steps) == 0:
+                seq_pred_x.append(x0_pred)
+                seq_x.append(x)
+        seq = torch.cat(seq_x+seq_pred_x, dim=0)
+        return self.decode(seq)
+
+    @torch.no_grad()
     def midway_generation(self, x0, cls, step_s=400, step_e=1000, batch_size=9):
         x0 = x0[:batch_size]
         cls = cls[:batch_size]

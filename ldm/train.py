@@ -12,6 +12,7 @@ def train(model,
           test_dataset):
     def conditional_generation(guidance_scales=[1, ]):
         for cls in [0, 1, 2, 4, 5]:  ### 3 = fa
+
             for guidance_scale in guidance_scales:
                 imgs = model.condional_generation(cls=cls,
                                                   batch_size=9,
@@ -20,6 +21,14 @@ def train(model,
                          logger.step,
                          f"g{guidance_scale}_{data_config['dataset_names'][cls]}",
                          train_config['outcome_root'])
+                imgs = model.seq_condional_generation(cls=cls,
+                                                      n_steps=10,
+                                                      guidance_scale=1)
+                vis_imgs(imgs,
+                         logger.step,
+                         f"seq_{data_config['dataset_names'][cls]}",
+                         train_config['outcome_root'],
+                         seq=True)
 
     logger = Logger(init_val=0,
                     log_path=train_config['log_path'],
@@ -59,7 +68,7 @@ def train(model,
                      train_config['outcome_root'])
             vis_imgs(rec_images, logger.step, "rec",
                      train_config['outcome_root'])
-            step_s = 400
+            step_s = 500
             noised_images, rec_images = model.midway_generation(x0, cls, batch_size=9,
                                                                 step_s=step_s)
             vis_imgs(noised_images, logger.step, f"noised{step_s}",

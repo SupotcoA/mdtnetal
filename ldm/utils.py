@@ -23,12 +23,20 @@ def tensor2bgr(tensor):
 
 
 @torch.no_grad()
-def vis_imgs(imgs, step, cls, root, use_plt=False):
+def vis_imgs(imgs, step, cls, root, use_plt=False, seq=False):
     imgs = tensor2bgr(imgs)
+    if seq:
+        n_steps, h, w, c = imgs.shape
+        n_steps = n_steps // 2
+        base = np.zeros((h * 2, w * n_steps, c), dtype=np.uint8)
+        for i in range(2):
+            for j in range(n_steps):
+                base[i * h:i * h + h, j * w:j * w + w, :] = imgs[i * n_steps + j]
+        fp = os.path.join(root, f"s{step}_{cls}.png")
+        cv2.imwrite(fp, base)
+        return
     if imgs.shape[0] > 9:
         imgs = imgs[:9]
-    elif imgs.shape[0] < 9:
-        raise ValueError(f"{imgs.shape}")
     h, w, c = imgs.shape[1:]
     base = np.zeros((h * 3, w * 3, c), dtype=np.uint8)
     for i in range(3):

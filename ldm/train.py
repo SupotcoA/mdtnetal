@@ -16,6 +16,7 @@ def train(model,
         plt.plot(exp_noise)
         plt.plot(pred_noise)
         plt.show()
+        return
         for cls, stop_t in zip([0, 1, 2, 4, 5], [200, 200, 200, 150, 200]):  ### 3 = fa
 
             for guidance_scale in guidance_scales:

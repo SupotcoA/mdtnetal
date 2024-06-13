@@ -159,7 +159,7 @@ class LatentDiffusion2(LatentDiffusion):
     def seq_condional_generation(self, cls, guidance_scale=1, n_steps=10):
         seq_pred_x=[]
         seq_x=[]
-        x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
+        x = torch.randn([1, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             x0_pred = self(x, cls, t)

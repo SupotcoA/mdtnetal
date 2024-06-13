@@ -27,11 +27,11 @@ def vis_imgs(imgs, step, cls, root, use_plt=False, seq=False):
     imgs = tensor2bgr(imgs)
     if seq:
         n_steps, h, w, c = imgs.shape
-        n_steps = n_steps // 2
-        base = np.zeros((h * 2, w * n_steps, c), dtype=np.uint8)
-        for i in range(2):
+        n_steps = n_steps // (2 * seq)
+        base = np.zeros((h * 2 * seq, w * n_steps, c), dtype=np.uint8)
+        for i in range(2 * seq):
             for j in range(n_steps):
-                base[i * h:i * h + h, j * w:j * w + w, :] = imgs[i * n_steps + j]
+                base[i * h:i * h + h, j * w:j * w + w, :] = imgs[i // 2 % seq::seq][i % 2 * n_steps + j]
         fp = os.path.join(root, f"s{step}_{cls}.png")
         cv2.imwrite(fp, base)
         return
@@ -96,5 +96,3 @@ def check_ae(model, x, root):
         return
     imgs = model.decode(x)[:9]
     vis_imgs(imgs, "ae_check", "ae_check", root, use_plt=True)
-
-

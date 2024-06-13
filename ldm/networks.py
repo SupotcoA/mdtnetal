@@ -156,10 +156,10 @@ class LatentDiffusion2(LatentDiffusion):
         return self.decode(x)
 
     @torch.no_grad()
-    def seq_condional_generation(self, cls, guidance_scale=1, n_steps=10):
+    def seq_condional_generation(self, cls, guidance_scale=1, n_steps=10, batch_size=3):
         seq_pred_x = []
         seq_x = []
-        x = torch.randn([1, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
+        x = torch.randn([batch_size, self.latent_dim, self.latent_size, self.latent_size]).to(self.device)
         for step in range(self.sample_steps):
             t = self.sampler.step2t(step)
             x0_pred = self(x, cls, t)
@@ -171,8 +171,9 @@ class LatentDiffusion2(LatentDiffusion):
             if (1 + step) % (self.sample_steps // n_steps) == 0:
                 seq_pred_x.append(x0_pred)
                 seq_x.append(x)
-        seq = torch.cat(seq_x + seq_pred_x, dim=0)
-        return self.decode(seq)
+        seq_x = torch.cat(seq_x, dim=0)
+        seq_pred_x = torch.cat(seq_pred_x, dim=0)
+        return torch.cat([self.decode(seq_x), self.decode(seq_pred_x)], dim=0)
 
     @torch.no_grad()
     def halfway_condional_generation(self, cls, guidance_scale=1, batch_size=9, stop_t=200):

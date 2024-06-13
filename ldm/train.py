@@ -14,29 +14,32 @@ def train(model,
         for cls, stop_t in zip([0, 1, 2, 4, 5], [200, 200, 200, 150, 200]):  ### 3 = fa
 
             for guidance_scale in guidance_scales:
-                imgs = model.condional_generation(cls=cls,
-                                                  batch_size=9,
-                                                  guidance_scale=guidance_scale)
-                vis_imgs(imgs,
-                         logger.step,
-                         f"g{guidance_scale}_{data_config['dataset_names'][cls]}",
-                         train_config['outcome_root'])
-                # imgs = model.seq_condional_generation(cls=cls,
-                #                                       n_steps=10,
-                #                                       guidance_scale=guidance_scale)
+                # imgs = model.condional_generation(cls=cls,
+                #                                   batch_size=9,
+                #                                   guidance_scale=guidance_scale)
                 # vis_imgs(imgs,
                 #          logger.step,
-                #          f"seq_g{guidance_scale}_{data_config['dataset_names'][cls]}",
-                #          train_config['outcome_root'],
-                #          seq=True)
-                imgs = model.halfway_condional_generation(cls=cls,
-                                                          batch_size=9,
-                                                          stop_t=stop_t,
-                                                          guidance_scale=guidance_scale)
-                vis_imgs(imgs,
-                         logger.step,
-                         f"half_g{guidance_scale}_{data_config['dataset_names'][cls]}",
-                         train_config['outcome_root'])
+                #          f"g{guidance_scale}_{data_config['dataset_names'][cls]}",
+                #          train_config['outcome_root'])
+                if cls != 0:
+                    bs = 4
+                    imgs = model.seq_condional_generation(cls=cls,
+                                                          n_steps=10,
+                                                          guidance_scale=guidance_scale,
+                                                          batch_size=bs)
+                    vis_imgs(imgs,
+                             logger.step,
+                             f"seq_g{guidance_scale}_{data_config['dataset_names'][cls]}",
+                             train_config['outcome_root'],
+                             seq=bs)
+                # imgs = model.halfway_condional_generation(cls=cls,
+                #                                           batch_size=9,
+                #                                           stop_t=stop_t,
+                #                                           guidance_scale=guidance_scale)
+                # vis_imgs(imgs,
+                #          logger.step,
+                #          f"half_g{guidance_scale}_{data_config['dataset_names'][cls]}",
+                #          train_config['outcome_root'])
 
     logger = Logger(init_val=0,
                     log_path=train_config['log_path'],

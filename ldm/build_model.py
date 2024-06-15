@@ -1,5 +1,5 @@
 import torch
-from networks import LatentDiffusion2 as LatentDiffusion
+from networks import LatentDiffusion, LatentDiffusion2
 from utils import print_num_params
 
 
@@ -8,14 +8,20 @@ def build_model(data_config,
                 ae_config,
                 diffusion_config,
                 train_config):
-    model = LatentDiffusion(data_config,
-                            unet_config,
-                            ae_config,
-                            diffusion_config)
+    if diffusion_config['predict'] == 'x':
+        model = LatentDiffusion2(data_config,
+                                 unet_config,
+                                 ae_config,
+                                 diffusion_config)
+    elif diffusion_config['predict'] == 'z':
+        model = LatentDiffusion(data_config,
+                                unet_config,
+                                ae_config,
+                                diffusion_config)
     print_num_params(model.ae, "AE", train_config['log_path'])
     print_num_params(model.unet, "Unet", train_config['log_path'])
     if train_config['pretrained']:
-        sd=torch.load(train_config['pretrained'], map_location=torch.device('cpu'))
+        sd = torch.load(train_config['pretrained'], map_location=torch.device('cpu'))
         keys = list(sd.keys())
         for k in keys:
             for ik in ['ae.', 'sampler.']:

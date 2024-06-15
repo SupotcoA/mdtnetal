@@ -11,23 +11,23 @@ def train(model,
           train_dataset,
           test_dataset):
     def conditional_generation(guidance_scales=[1, ]):
-        import matplotlib.pyplot as plt
-        exp_noise, pred_noise = model.validate_condional_generation(0)
-        plt.plot(exp_noise,label='real')
-        plt.plot(pred_noise,label='expected')
-        plt.legend()
-        plt.show()
-        return
+        # import matplotlib.pyplot as plt
+        # exp_noise, pred_noise = model.validate_condional_generation(0)
+        # plt.plot(exp_noise,label='real')
+        # plt.plot(pred_noise,label='expected')
+        # plt.legend()
+        # plt.show()
+        # return
         for cls, stop_t in zip([0, 1, 2, 4, 5], [200, 200, 200, 150, 200]):  ### 3 = fa
 
             for guidance_scale in guidance_scales:
-                # imgs = model.condional_generation(cls=cls,
-                #                                   batch_size=9,
-                #                                   guidance_scale=guidance_scale)
-                # vis_imgs(imgs,
-                #          logger.step,
-                #          f"g{guidance_scale}_{data_config['dataset_names'][cls]}",
-                #          train_config['outcome_root'])
+                imgs = model.condional_generation(cls=cls,
+                                                  batch_size=9,
+                                                  guidance_scale=guidance_scale)
+                vis_imgs(imgs,
+                         logger.step,
+                         f"g{guidance_scale}_{data_config['dataset_names'][cls]}",
+                         train_config['outcome_root'])
                 if cls != 0:
                     bs = 4
                     imgs = model.seq_condional_generation(cls=cls,

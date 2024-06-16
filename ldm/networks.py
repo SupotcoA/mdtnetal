@@ -100,10 +100,10 @@ class LatentDiffusion(nn.Module):
             if guidance_scale > 1.0001:
                 z_pred_unconditional = self(x, cls, t, cls_mask_ratio=1)
                 z_pred = z_pred * guidance_scale + z_pred_unconditional * (1 - guidance_scale)
-            t = torch.ones(batch_size).long().to(self.device)*t
             x = self.sampler.step(x, z_pred, t, step)
             if (1 + step) % (self.sample_steps // n_steps) == 0:
-                x0_pred = self.sampler.rev_diffuse(x, t, z_pred)
+                t_ = torch.ones(batch_size).long().to(self.device) * t
+                x0_pred = self.sampler.rev_diffuse(x, t_, z_pred)
                 seq_pred_x.append(x0_pred)
                 seq_x.append(x)
         seq_x = torch.cat(seq_x, dim=0)
